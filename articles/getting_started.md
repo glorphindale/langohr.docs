@@ -218,7 +218,39 @@ sophisticated example.
 
 ## Blabbr: One-to-Many Publish/Subscribe (pubsub) Routing Example
 
-TBD
+The previous example demonstrated how a connection to a broker is made and how to do 1:1 communication using the default exchange. Now let us take a look at another common
+scenario: broadcast, or multiple consumers and one producer.
+
+A very well-known broadcast example is Twitter: every time a person tweets, followers receive a notification. Blabbr, our imaginary information network, models this scenario:
+every network member has a separate queue and publishes blabs to a separate exchange. Three Blabbr members, Joe, Aaron and Bob, follow the official NBA account on Blabbr
+to get updates about what is happening in the world of basketball. Here is the code:
+
+{% gist 5642bbea1fbac1b9e33f %}
+
+In this example, opening a channel is no different to opening a channel in the previous example, however, we do one extra thing: declare an exchange:
+
+{% gist fc8ff2d86d28626c758e %}
+
+The exchange that we declare above is a *fanout exchange*. A fanout exchange delivers messages to all of the queues that are bound to it: exactly what we want in the
+case of Blabbr.
+
+This piece of code
+
+{% gist f22f61986d3efeaeeb5c %}
+
+is similar to the subscription code that we used for message delivery previously, but also does a bit more: it sets up a binding between the queue and the exchange
+that was declared earlier. We need to do this to make sure that our fanout exchange routes messages to the queues of all subscribed followers.
+
+Another difference in this example is the routing key we use for publishing: it is an empty string:
+
+{% gist 7c315e370ab1f9f85778 %}
+
+Fanout exchanges
+simply put a copy of the message in each queue bound to them and ignore the routing key
+
+A diagram for Blabbr looks like this:
+
+![Blabbr Routing Diagram](http://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/002_blabbr_example_routing.png)
 
 
 ## Weathr: Many-to-Many Topic Routing Example
