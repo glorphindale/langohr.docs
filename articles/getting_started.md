@@ -255,7 +255,72 @@ A diagram for Blabbr looks like this:
 
 ## Weathr: Many-to-Many Topic Routing Example
 
-TBD
+So far, we have seen point-to-point communication and broadcasting. Those two communication styles are possible with many protocols, for instance, HTTP handles these
+scenarios just fine. You may ask "what differentiates AMQP?" Well, next we are going to introduce you to *topic exchanges* and routing with patterns,
+one of the features that makes AMQP very powerful.
+
+Our third example involves weather condition updates. What makes it different from the previous two examples is that not all of the consumers are interested in
+all of the messages. People who live in Portland usually do not care about the weather in Hong Kong (unless they are visiting soon). They are much more interested
+in weather conditions around Portland, possibly all of Oregon and sometimes a few neighbouring states.
+
+Our example features multiple consumer applications monitoring updates for different regions. Some are interested in updates for a specific city, others for a specific
+state and so on, all the way up to continents. Updates may overlap so that an update for San Diego, CA appears as an update for California, but also should show up
+on the North America updates list.
+
+Here is the code:
+
+{% gist e0c6a8c24835ae7c7433 %}
+
+The first line that is different from the Blabbr example is
+
+{% gist 9e7e0a49411e65f7f0c3 %}
+
+We use a topic exchange here. Topic exchanges are used for [multicast](http://en.wikipedia.org/wiki/Multicast) messaging where consumers indicate
+which topics they are interested in (think of it as subscribing to a feed for an individual tag in your favourite blog as opposed to the full feed).
+Routing with a topic exchange is done by specifying a *routing pattern* on binding, for example:
+
+{% gist 40c08385c0abca8f0f7d %}
+
+Here we bind a queue with the name of "americas.south" to the topic exchange declared earlier using the `langohr.queue/bind` function.  This means
+that only messages with a routing key matching `americas.south.#` will be routed to that queue. A routing pattern consists of several words separated by dots,
+in a similar way to URI path segments joined by slashes. Here are a few examples:
+
+ * asia.southeast.thailand.bangkok
+ * sports.basketball
+ * usa.nasdaq.aapl
+ * tasks.search.indexing.accounts
+
+Now let us take a look at a few routing keys that match the "americas.south.#" pattern:
+
+ * americas.south
+ * americas.south.**brazil**
+ * americas.south.**brazil.saopaolo**
+ * americas.south.**chile.santiago**
+
+In other words, the `#` part of the pattern matches 0 or more words.
+
+For a pattern like `americas.south.*`, some matching routing keys would be:
+
+ * americas.south.**brazil**
+ * americas.south.**chile**
+ * americas.south.**peru**
+
+but not
+
+ * americas.south
+ * americas.south.chile.santiago
+
+so `*` only matches a single word. The AMQP 0.9.1 specification says that topic segments (words) may contain the letters A-Z and a-z and digits 0-9.
+
+When you run this example, the output will look a bit like this:
+
+{% gist b3d899a7c0243076e78a %}
+
+As you can see, some messages were routed to multiple queues and some were not routed to any queues ("deadlettered").
+
+A (very simplistic) diagram to demonstrate topic exchange in action:
+
+![Weathr Routing Diagram](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/003_weathr_example_routing.png)
 
 
 ## Synchronous vs Asynchronous APIs in Langohr
@@ -266,7 +331,17 @@ TBD
 
 ## Wrapping Up
 
-TBD
+This is the end of the tutorial. Congratulations! You have learned quite a bit about both RabbitMQ and Langohr. This is only the tip of the iceberg.
+RabbitMQ has many more features built into the protocol:
+
+ * Reliable delivery of messages
+ * Message confirmations (a way to tell broker that a message was or was not processed successfully)
+ * Message redelivery when consumer applications fail or crash
+ * Load balancing of messages between multiple consumers
+ * Message metadata attributes
+
+and so on. Other guides explain these features in depth, as well as use cases for them. To stay up to date with Langohr development, [follow @clojurewerkz on Twitter](http://twitter.com/clojurewerkz)
+and [join our mailing list](http://groups.google.com/group/clojure-rabbitmq).
 
 
 ## What to Read Next
