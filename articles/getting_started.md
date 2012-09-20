@@ -323,10 +323,70 @@ A (very simplistic) diagram to demonstrate topic exchange in action:
 ![Weathr Routing Diagram](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/003_weathr_example_routing.png)
 
 
+The rest of this guide will cover Langohr API design principles.
+
+
+## Langohr API Structure
+
+AMQP 0.9.1 operations are grouped into **classes** (no relation to classes in OO languages such as Java or Objective-C):
+
+ * `connection.*`
+ * `channel.*`
+ * `queue.*`
+ * `exchange.*`
+ * `basic.*`
+ * `tx.*`
+
+With a couple of exceptions, the Langohr API follows this structure:
+
+ * `queue.declare` is accessible via the `langohr.queue/declare` function
+ * `exchange.declare` is accessible via `langohr.exchange/declare`
+ * `basic.publish` is accessible via `langohr.basic/publish`
+ * `basic.cancel` is accessible via `langohr.basic/cancel`
+
+and so on. This makes it easy to predict function names, navigate API reference and source code and communicate with
+developers who use other AMQP 0.9.1 clients.
+
+The exceptions to this are:
+
+ * `connection.open` is exposed as `langohr.core/connect`
+ * `connection.close` is accessible via `langohr.core/close`
+ * `channel.close` is accessible via `langohr.core/close` (the function is polymorphic and works on both connections and channels)
+
+
+
 ## Synchronous vs Asynchronous APIs in Langohr
 
-TBD
+AMQP 0.9.1 and messaging in general are inherently asynchronous: applications publish messages as events happen and react to events
+elsewhere by consuming messages and processing them. Per [AMQP 0.9.1 specification](http://bit.ly/amqp091spec), some AMQP methods (protocol operations, similar to
+`GET` and `POST` in HTTP) are asynchronous (do not block) and some are synchronous (block until a response is received).
 
+There are good reasons for this. For some methods, there may be no response (e.g. publishing messages) or it may arrive at an unknown moment
+in the future, possibly hours and days later. Some operations (e.g. declaring a queue) typically finish in a few milliseconds and
+applications have to wait for them to finish before they can do anything else. In the case of the `queue.declare` method, it is
+not possible to start a consumer on a queue that wasn't declared.
+
+RabbitMQ Java client and Langohr take a pragmatic approach: some API functions block, others do not. A few examples of blocking
+operations:
+
+ * `langohr.queue/declare`
+ * `langohr.exchange/declare`
+ * `langohr.queue/bind`
+ * `langohr.queue/purge`
+ * `langohr.queue/delete`
+ * `langohr.basic/get` ("pull API", synchronous by design)
+
+The following functions do not block the calling thread:
+
+ * `langohr.basic/publish`
+ * `langohr.basic/ack`
+ * `langohr.basic/reject`
+ * `langohr.basic/nack`
+
+these lists are not complete but should give you an idea about Langohr's philosophy: operations that are performance-sensitive or inherintly
+asynchronous won't block, operations that are synchronous by nature or required to finish for other operations to proceed as blocking.
+
+This offers developers a good balance of convenience of blocking function calls and good throughput for publishing.
 
 
 ## Wrapping Up
@@ -350,7 +410,16 @@ The documentation is organized as [a number of guides](/articles/guides.html), c
 
 We recommend that you read the following guides first, if possible, in this order:
 
-TBD
+ * [AMQP Concepts](http://www.rabbitmq.com/tutorials/amqp-concepts.html)
+ * [Conneciting To The Broker](/articles/connecting.html)
+ * [Queues and Consumers](/articles/queues.html)
+ * [Exchanges and Publishing](/articles/exchanges.html)
+ * [Bindings](/articles/bindings.html)
+ * [RabbitMQ Extensions to AMQP 0.9.1](/articles/rabbitmq_extensions.html)
+ * [Durability and Related Matters](/articles/durability.html)
+ * [Error Handling and Recovery](/articles/error_handling.html)
+ * [Troubleshooting](/articles/troubleshooting.html)
+ * [Using TLS (SSL) Connections](/articles/tls.html)
 
 
 
