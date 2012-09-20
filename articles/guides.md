@@ -13,7 +13,7 @@ We recommend that you read these guides, if possible, in this order:
 ###  [Getting started](/articles/getting_started.html)
 
 An overview of Project Name with a quick tutorial that helps you to get started with it. It should take about
-10 minutes to read and study the provided code examples
+15 minutes to read and study the provided code examples.
 
 
 ### [AMQP Concepts](http://www.rabbitmq.com/tutorials/amqp-concepts.html)
