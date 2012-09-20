@@ -1,5 +1,5 @@
 ---
-title: "Getting Started"
+title: "Getting Started with RabbitMQ and Clojure | Clojure RabbitMQ client"
 layout: article
 ---
 
