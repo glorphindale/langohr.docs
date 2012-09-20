@@ -323,7 +323,8 @@ A (very simplistic) diagram to demonstrate topic exchange in action:
 ![Weathr Routing Diagram](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/003_weathr_example_routing.png)
 
 
-The rest of this guide will cover Langohr API design principles.
+The rest of this guide will cover Langohr API design principles. if you are completely new to AMQP and RabbitMQ, feel free
+to skip them for now and go straight to the Wrapping Up section.
 
 
 ## Langohr API Structure
