@@ -30,11 +30,12 @@ This guide covers:
 
 
 
-### [Conneciting To The Broker](/articles/connecting.html) (TBD)
+### [Conneciting To The Broker](/articles/connecting.html)
 
 This guide covers:
 
  * How to connect to RabbitMQ with Langohr
+ * How to use connection URI to connect to RabbitMQ (also: on Heroku)
  * How to open a channel
  * How to close a channel
  * How to disconnect
