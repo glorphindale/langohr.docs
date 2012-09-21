@@ -82,14 +82,14 @@ result in a channel-level exception with reply code 403 (ACCESS_REFUSED) and a r
 
     ACCESS_REFUSED - queue name 'amq.queue' contains reserved prefix 'amq.*'
 
-### Queue re-declaration with different attributes
+### Queue Re-Declaration With Different Attributes
 
 When queue declaration attributes are different from those that the queue already has, a channel-level exception with code `406 (PRECONDITION_FAILED)`
 will be raised. The reply text will be similar to this:
 
     PRECONDITION_FAILED - parameters for queue 'langohr.examples.channel_exception' in vhost '/' not equivalent
 
-## Queue life-cycle patterns
+## Queue Life-cycle Patterns
 
 According to the AMQP 0.9.1 specification, there are two common message queue life-cycle patterns:
 
@@ -159,15 +159,16 @@ use the `langohr.queue/bind` function:
 To set up a queue subscription to enable an application to receive messages as they arrive in a queue, one uses the `langohr.consumers/subscribe` function.
 Then when a message arrives, the message header (metadata) and body (payload) are passed to the handler:
 
-{% gist  %}
+{% gist %}
 
 The same example in context:
 
-{% gist  %}
+{% gist %}
 
-Subscriptions for message delivery are usually referred to as <span class="note">consumers</span> in the AMQP 0.9.1 specification, client library documentation and books. Consumers last as long as the channel that they were declared on, or until  client cancels them (unsubscribes).
+Subscriptions for message delivery are usually referred to as <span class="note">consumers</span> in the AMQP 0.9.1 specification, client library documentation and books.
+Consumers last as long as the channel that they were declared on, or until  client cancels them (unsubscribes).
 
-Consumers are identified by <span class="note">consumer tags</span>. If you need to obtain the consumer tag of a subscribed queue then use {% yard_link AMQP::Queue#consumer_tag %}.
+Consumers are identified by <span class="note">consumer tags</span>.
 
 ### Accessing message metadata
 
@@ -185,31 +186,33 @@ The <span class="note">header</span> object in the example above provides access
 
 and so on. An example to demonstrate how to access some of those attributes:
 
-{% gist  %}
+{% gist %}
 
-### Exclusive consumers
+### Exclusive Consumers
 
-Consumers can request exclusive access to the queue (meaning only this consumer can access the queue). This is useful when you want a long-lived shared queue to be temporarily accessible by just one application (or thread, or process). If the application employing the exclusive consumer crashes or loses the TCP connection to the broker, then the channel is closed and the exclusive consumer is cancelled.
+Consumers can request exclusive access to the queue (meaning only this consumer can access the queue). This is useful when you want a long-lived shared queue
+to be temporarily accessible by just one application (or thread, or process). If the application employing the exclusive consumer crashes or loses the
+TCP connection to the broker, then the channel is closed and the exclusive consumer is cancelled.
 
-To exclusively receive messages from the queue, pass the ":exclusive" option to {% yard_link AMQP::Queue#subscribe %}:
+To exclusively receive messages from the queue, pass the `:exclusive` option to `langohr.consumers/subscribe`:
 
-{% gist  %}
+{% gist %}
 
 TBD: describe what happens when exclusivity property is violated and how to handle it.
 
 
-### Using multiple consumers per queue
+### Using Multiple Consumers Per Queue
 
 TBD
 
 
 ### Cancelling a Consumer
 
-{% gist  %}
+{% gist %}
 
-To cancel a particular consumer, use {% yard_link AMQP::Consumer#cancel %} method. To cancel a default queue consumer, use {% yard_link AMQP::Queue#unsubscribe %}.
+To cancel a particular consumer, use ``. To cancel a default queue consumer, use ``.
 
-### Message acknowledgements
+### Message Acknowledgements
 
 Consumer applications — applications that receive and process messages ‚ may occasionally fail to process individual messages, or will just crash.
 There is also the possibility of network issues causing problems. This raises a question — "When should the AMQP broker remove messages from queues?"
@@ -224,7 +227,7 @@ With the explicit model, the application chooses when it is time to send an ackn
 or after persisting it to a data store before processing, or after fully processing the message (for example, successfully fetching a Web page,
 processing and storing it into some persistent data store).
 
-!https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/006_amqp_091_message_acknowledgements.png!
+![Message Acknowledgements](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/006_amqp_091_message_acknowledgements.png)
 
 If a consumer dies without sending an acknowledgement, the AMQP broker will redeliver it to another consumer, or, if none are available at the time,
 the broker will wait until at least one consumer is registered for the same queue before attempting redelivery.
@@ -232,11 +235,11 @@ the broker will wait until at least one consumer is registered for the same queu
 The acknowledgement model is chosen when a new consumer is registered for a queue. By default, `langohr.consumers/subscribe` will use the *automatic* model.
 To switch to the *explicit* model, the `:ack` option should be used:
 
-{% gist  %}
+{% gist %}
 
 To demonstrate how redelivery works, let us have a look at the following code example:
 
-{% gist  %}
+{% gist %}
 
 So what is going on here? This example uses three AMQP connections to imitate three applications, one producer and two consumers.
 Each AMQP connection opens a single channel:
@@ -324,28 +327,12 @@ To configure prefetching per channel, use the {AMQP::Channel#prefetch} method. L
 
 In that example, one consumer prefetches three messages and another consumer prefetches just one. If we take a look at the output that the example produces, we will see that `consumer1` fetched four messages and acknowledged one. After that, all subsequent messages were delivered to `consumer2`:
 
-<code>[consumer2] Received Message #0, redelivered = false, ack-ed
-[consumer1] Got message #1, SKIPPED
-[consumer1] Got message #2, SKIPPED
-[consumer1] Got message #3, ack-ed
-[consumer2] Received Message #4, redelivered = false, ack-ed
-[consumer1] Got message #5, SKIPPED
----
-  by now consumer 1 has received three messages it did not acknowledge.
-  With prefetch = 3, AMQP broker will not send it any more messages until consumer 1 sends an ack
----
-[consumer2] Received Message #6, redelivered = false, ack-ed
-[consumer2] Received Message #7, redelivered = false, ack-ed
-[consumer2] Received Message #8, redelivered = false, ack-ed
-[consumer2] Received Message #9, redelivered = false, ack-ed
-[consumer2] Received Message #10, redelivered = false, ack-ed
-[consumer2] Received Message #11, redelivered = false, ack-ed
-</code>
+{% gist %}
 
 <span class="alert alert-error">The prefetching setting is ignored for consumers that do not use explicit acknowledgements.</span>
 
 
-## How message acknowledgements relate to transactions and Publisher Confirms
+## How Message Acknowledgements Relate to Transactions and Publisher Confirms
 
 In cases where you cannot afford to lose a single message, AMQP 0.9.1 applications can use one or a combination of the following protocol features:
 
@@ -358,13 +345,13 @@ message acknowledgements are related to AMQP transactions and the Publisher Conf
 
 Let us consider a publisher application (P) that communications with a consumer (C) using AMQP 0.9.1. Their communication can be graphically represented like this:
 
-<code>
+<pre>
 -----       -----       -----
 |   |   S1  |   |   S2  |   |
 | P | ====> | B | ====> | C |
 |   |       |   |       |   |
 -----       -----       -----
-</code>
+</pre>
 
 We have two network segments, S1 and S2. Each of them may fail. P is concerned with making sure that messages cross S1, while broker (B) and C are concerned with ensuring
 that messages cross S2 and are only removed from the queue when they are processed successfully.
@@ -378,23 +365,23 @@ Publisher Confirms RabbitMQ extension.
 The AMQP 0.9.1 specification also provides a way for applications to fetch (pull) messages from the queue only when necessary.
 For that, use the `langohr.basic/get` function:
 
-{% gist  %}
+{% gist %}
 
 The same example in context:
 
-{% gist  %}
+{% gist %}
 
 If the queue is empty, then ...  will be nil, otherwise ....
 
 ## Unsubscribing From Messages
 
-Sometimes it is necessary to unsubscribe from messages without deleting a queue. To do that, use the {% yard_link AMQP::Queue#unsubscribe %} method:
+Sometimes it is necessary to unsubscribe from messages without deleting a queue. To do that, use the `` function:
 
-{% gist  %}
+{% gist %}
 
 The same example in context:
 
-{% gist  %}
+{% gist %}
 
 In AMQP parlance, unsubscribing from messages is often referred to as "cancelling a consumer". Once a consumer is cancelled, messages will
 no longer be delivered to it, however, due to the asynchronous nature of the protocol, it is possible for "in flight" messages to be received
@@ -407,11 +394,11 @@ Fetching messages with `langohr.basic/get` is still possible even after a consum
 
 To unbind a queue from an exchange use the `langohr.queue/unbind` function:
 
-{% gist  %}
+{% gist %}
 
 The same example in context:
 
-{% gist  %}
+{% gist %}
 
 Note that trying to unbind a queue from an exchange that the queue was never bound to will result in a channel-level exception.
 
@@ -421,32 +408,32 @@ It is possible to query the number of messages sitting in the queue by declaring
 The response (`queue.declare-ok` AMQP method) will include the number of messages along with other attributes. However, the amqp gem provides
 a convenience function `langohr.queue/status`:
 
-{% gist  %}
+{% gist %}
 
 The same example in context:
 
-{% gist  %}
+{% gist %}
 
 ## Querying the Number of Consumers On a Queue
 
 It is possible to query the number of consumers on a queue by declaring the queue with the ":passive" attribute set. The response (`queue.declare-ok` AMQP method)
 will include the number of consumers along with other attributes. However, the amqp gem provides a convenience function `langohr.queue/status`:
 
-{% gist  %}
+{% gist %}
 
 The same example in context:
 
-{% gist  %}
+{% gist %}
 
 ## Purging queues
 
 It is possible to purge a queue (remove all of the messages from it) using the `langohr.queues/purge` function:
 
-{% gist  %}
+{% gist %}
 
 The same example in context:
 
-{% gist  %}
+{% gist %}
 
 Note that this example purges a newly declared queue with a unique server-generated name. When a queue is declared, it is empty,
 so for server-named queues, there is no need to purge them before they are used.
@@ -455,11 +442,11 @@ so for server-named queues, there is no need to purge them before they are used.
 
 To delete a queue, use the `langohr.queue/delete` function:
 
-{% gist  %}
+{% gist %}
 
 The same example in context:
 
-{% gist  %}
+{% gist %}
 
 When a queue is deleted, all of the messages in it are deleted as well.
 
