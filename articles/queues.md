@@ -222,6 +222,9 @@ The same example in context:
 
 Then when a message arrives, the message header (metadata) and body (payload) are passed to the *delivery handler*.
 
+`langohr.basic/consume` can take a consumer tag (any unique string) or let RabbitMQ generate one. In both cases,
+it returns the consumer tag.
+
 
 ### Convenience Method
 
@@ -237,9 +240,9 @@ It will block the calling thread, so it is usually started in a separate thread.
 I/O exceptions that may arise during the consumer's lifespan.
 
 
-### Accessing message metadata
+### Accessing Message Metadata
 
-The *header* object in the example above provides access to message metadata and delivery information:
+The *metadata* parameter in the example above provides access to message metadata and delivery information:
 
  * Message content type
  * Message content encoding
@@ -251,9 +254,31 @@ The *header* object in the example above provides access to message metadata and
  * Whether or not message is redelivered
  * Producer application id
 
-and so on. An example to demonstrate how to access some of those attributes:
+and so on. An example to demonstrate how to access some of those attributes via map destructuring:
 
-{% gist %}
+{% gist 04cee8313ea0d52037fc %}
+
+The full list of keys (note that most of them are optional and may not be present):
+
+ * `:delivery-tag`
+ * `:redelivery?`
+ * `:exchange`
+ * `:routing-key`
+ * `:content-type`
+ * `:content-encoding`
+ * `:headers`
+ * `:delivery-mode`
+ * `:persistent?`
+ * `:priority`
+ * `:correlation-id`
+ * `:reply-to`
+ * `:expiration`
+ * `:message-id`
+ * `:timestamp`
+ * `:type`
+ * `:user-id`
+ * `:app-id`
+ * `:cluster-id`
 
 ### Exclusive Consumers
 
@@ -263,21 +288,29 @@ TCP connection to the broker, then the channel is closed and the exclusive consu
 
 To exclusively receive messages from the queue, pass the `:exclusive` option to `langohr.consumers/subscribe`:
 
-{% gist %}
+{% gist e7d21cbe7873bac008f3 %}
 
-TBD: describe what happens when exclusivity property is violated and how to handle it.
+If a queue has an exclusive consumer, attempts to register another consumer will fail with an [access refused](http://www.rabbitmq.com/amqp-0-9-1-reference.html#constant.access-refused)
+channel-level exception (code: 403).
+
+It is not possible to register an exclusive consumer on a queue that already has consumers.
 
 
 ### Using Multiple Consumers Per Queue
 
-TBD
+It is possible to have multiple non-exclusive consumers on queues. In that case, messages will be
+distributed between them according to prefetch levels of their channels (more on this later in this
+guide). If prefetch values are equal for all consumers, each consumer will get about the same # of messages.
 
 
 ### Cancelling a Consumer
 
-{% gist %}
+To cancel a particular consumer, use the `langohr.basic/cancel` function that takes a channel and a consumer tag to cancel:
 
-To cancel a particular consumer, use ``. To cancel a default queue consumer, use ``.
+{% gist 66a25ef4afdfcbbcb9ac %}
+
+Consumer tag is returned by `langohr.basic/consume` or may be already known to your application.
+
 
 ### Message Acknowledgements
 
