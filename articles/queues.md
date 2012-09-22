@@ -12,7 +12,7 @@ typical operations using Langohr. This work is licensed under a <a rel="license"
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.0-beta4.
+This guide covers Langohr 1.0-beta7.
 
 
 ## Queues in AMQP 0.9.1: Overview
@@ -151,28 +151,95 @@ Exclusive queues will be deleted when the connection they were declare on is clo
 In order to receive messages, a queue needs to be bound to at least one exchange. Most of the time binding is explcit (done by applications). To bind a queue to an exchange,
 use the `langohr.queue/bind` function:
 
-{% gist %}
+{% gist 65bfdc7a550684f69174 %}
+
+The same example in context:
+
+{% gist eb464e4d29c167471c96 %}
 
 
 ## Subscribing to receive messages ("push API")
 
-To set up a queue subscription to enable an application to receive messages as they arrive in a queue, one uses the `langohr.consumers/subscribe` function.
-Then when a message arrives, the message header (metadata) and body (payload) are passed to the handler:
+To set up a queue subscription to enable an application to receive messages as they arrive in a queue, one uses the `langohr.basic/consume` function
+that takes a *consumer*. Consumer is the name for subscription that the AMQP 0.9.1 specification uses. Consumers last as long as the channel that they were declared on,
+or until client cancels them (unsubscribes).
 
-{% gist %}
+Consumers are identified by *consumer tags* and have a number of events they can react on:
+
+ * Message delivery handler
+ * Consumer registration confirmation handler
+ * Consumer cancellation handler
+
+### Message Delivery Handler
+
+This is the most important of the three. This handler will process messages that RabbitMQ pushes to the consumer.
+
+{% gist  %}
 
 The same example in context:
 
 {% gist %}
 
-Subscriptions for message delivery are usually referred to as <span class="note">consumers</span> in the AMQP 0.9.1 specification, client library documentation and books.
-Consumers last as long as the channel that they were declared on, or until  client cancels them (unsubscribes).
+### Consumer Registration Handler
 
-Consumers are identified by <span class="note">consumer tags</span>.
+This handler will be invoked when a confirmation (the `basic.consume-ok` method) arrives from RabbitMQ.
+This usually happens within milliseconds after registering a consumer. This handler is used
+relatively rarely.
+
+{% gist 6c6b276e4c1b271c7647 %}
+
+The same example in context:
+
+{% gist c6863ced2f85191a3758 %}
+
+
+### Consumer Cancellation Handler
+
+Consumers can be cancelled by RabbitMQ in some situations:
+
+ * When a consumer is cancelled via the RabbitMQ Management UI
+ * When the queue messages are consumed from is deleted
+
+This handler will react to *consumer cancellation notifications* when one of the aforementioned events happen.
+
+{% gist 42313535e32170afb6cf %}
+
+The same example in context:
+
+{% gist 7fe8bddba57a17edcae7 %}
+
+
+
+### Consuming Messages
+
+To start consuming messages, pass a consumer to the `langohr.basic/consume` function:
+
+{% gist c6362a702b2d25d0c0b5 %}
+
+The same example in context:
+
+{% gist bc9b18234778e538035d %}
+
+Then when a message arrives, the message header (metadata) and body (payload) are passed to the *delivery handler*.
+
+
+### Convenience Method
+
+The `langohr.consumers/subscribe` function starts a consumer that loops and processes messages forever:
+
+{% gist 7f764b28302df126d56d %}
+
+The same example in context:
+
+{% gist 4a03143b1c601ecf692a %}
+
+It will block the calling thread, so it is usually started in a separate thread. That thread should take care of handling
+I/O exceptions that may arise during the consumer's lifespan.
+
 
 ### Accessing message metadata
 
-The <span class="note">header</span> object in the example above provides access to message metadata and delivery information:
+The *header* object in the example above provides access to message metadata and delivery information:
 
  * Message content type
  * Message content encoding
@@ -246,7 +313,7 @@ Each AMQP connection opens a single channel:
 
 {% gist %}
 
-The consumers share a queue and the producer publishes messages to the queue periodically using an <span class="note">`amq.direct`</span> exchange.
+The consumers share a queue and the producer publishes messages to the queue periodically using an `amq.direct` exchange.
 Both "applications" subscribe to receive messages using the explicit acknowledgement model. The AMQP broker by default will send each message to
 the next consumer in sequence (this kind of load balancing is known as *round-robin*). This means that some messages will be delivered
 to consumer #1 and some to consumer #2.
@@ -298,7 +365,7 @@ that `langohr.basic/reject` takes:
 
 ### Negative acknowledgements
 
-Messages are rejected with the <span class="note">`basic.reject`</span> AMQP method. There is one limitation that `basic.reject` has:
+Messages are rejected with the `basic.reject` AMQP method. There is one limitation that `basic.reject` has:
 there is no way to reject multiple messages, as you can do with acknowledgements. However, if you are using [RabbitMQ](http://rabbitmq.com), then there is a solution.
 RabbitMQ provides an AMQP 0.9.1 extension known as [negative acknowledgements](http://www.rabbitmq.com/extensions.html#negative-acknowledgements) (nacks) and
 Langohr supports this extension. For more information, please refer to the [RabbitMQ Extensions guide](/articles/rabbitmq_extensions.html).
