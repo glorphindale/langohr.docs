@@ -332,26 +332,21 @@ processing and storing it into some persistent data store).
 If a consumer dies without sending an acknowledgement, the AMQP broker will redeliver it to another consumer, or, if none are available at the time,
 the broker will wait until at least one consumer is registered for the same queue before attempting redelivery.
 
-The acknowledgement model is chosen when a new consumer is registered for a queue. By default, `langohr.consumers/subscribe` will use the *automatic* model.
-To switch to the *explicit* model, the `:ack` option should be used:
+The acknowledgement model is chosen when a new consumer is registered for a queue. By default, `langohr.consumers/subscribe` will use the *explicit* model.
+To switch to the *automatic* model, the `:auto-ack` option should be used:
 
-{% gist %}
+{% gist 4a03143b1c601ecf692a %}
 
 To demonstrate how redelivery works, let us have a look at the following code example:
 
-{% gist %}
+{% gist 10396b17bfa343540b35 %}
 
 So what is going on here? This example uses three AMQP connections to imitate three applications, one producer and two consumers.
-Each AMQP connection opens a single channel:
+Each AMQP connection opens a single channel. The consumers share a queue and the producer publishes messages to the queue periodically using an `amq.direct` exchange.
 
-{% gist %}
-
-The consumers share a queue and the producer publishes messages to the queue periodically using an `amq.direct` exchange.
 Both "applications" subscribe to receive messages using the explicit acknowledgement model. The AMQP broker by default will send each message to
 the next consumer in sequence (this kind of load balancing is known as *round-robin*). This means that some messages will be delivered
 to consumer #1 and some to consumer #2.
-
-{% gist %}
 
 To demonstrate message redelivery we make consumer #1 randomly select which messages to acknowledge. After 4 seconds we disconnect it (to imitate a crash).
 When that happens, the AMQP broker redelivers unacknowledged messages to consumer #2 which acknowledges them unconditionally. After 10 seconds, this example
@@ -359,21 +354,21 @@ closes all outstanding connections and exits.
 
 An extract of output produced by this example:
 
-{% gist %}
+{% gist 00ea1388dea0c93eb327 %}
 
-As we can see, consumer #1 did not acknowledge three messages (labelled 1, 2 and 5):
+As we can see, consumer #1 did not acknowledge three messages (labelled 0, 2 and 4):
 
-{% gist %}
+{% gist be64738ccb4fffe8d723 %}
 
 and then, once consumer #1 had "crashed", those messages were immediately redelivered to the consumer #2:
 
-{% gist %}
+{% gist 428eeefa8a370c8c939 %}
 
 To acknowledge a message use `langohr.basic/ack`:
 
-{% gist %}
+{% gist d8a56fef79de681e4470 %}
 
-`langohr.basic/ack` takes two arguments: message *delivery tag* and a flag that indicates whether or not we want to acknowledge multiple messages at once.
+`langohr.basic/ack` takes three arguments: a channel, a message *delivery tag* and a flag that indicates whether or not we want to acknowledge multiple messages at once.
 Delivery tag is simply a channel-specific increasing number that the server uses to identify deliveries.
 
 When acknowledging multiple messages at once, the delivery tag is treated as "up to and including". For example, if delivery tag = 5 that would mean "acknowledge messages 1, 2, 3, 4 and 5".
@@ -389,12 +384,12 @@ processing has failed (or cannot be accomplished at the time) by rejecting a mes
 
 To reject a message use the `langohr.basic/reject` method:
 
-{% gist %}
+{% gist b8bd2c7f93b858909de1 %}
 
 in the example above, messages are rejected without requeueing (broker will simply discard them). To requeue a rejected message, use the second argument
 that `langohr.basic/reject` takes:
 
-{% gist %}
+{% gist ef42e2545e1fde033146 %}
 
 ### Negative acknowledgements
 
@@ -421,13 +416,13 @@ that the AMQP broker has to hold in memory at once, applications can be designed
 receives 5000 messages and then acknowledges them all at once. The broker will not send message 5001 unless it receives an acknowledgement.
 
 In AMQP parlance this is know as *QoS* or *message prefetching*. Prefetching is configured on a per-channel (typically) or per-connection (rarely used) basis.
-To configure prefetching per channel, use the {AMQP::Channel#prefetch} method. Let us return to the example we used in the "Message acknowledgements" section:
+To configure prefetching per channel, use the `langohr.basic/qos` function. Let us return to the example we used in the "Message acknowledgements" section:
 
-{% gist %}
+{% gist 062357d99c9b63f1b518 %}
 
 In that example, one consumer prefetches three messages and another consumer prefetches just one. If we take a look at the output that the example produces, we will see that `consumer1` fetched four messages and acknowledged one. After that, all subsequent messages were delivered to `consumer2`:
 
-{% gist %}
+{% gist 00ea1388dea0c93eb327 %}
 
 <span class="alert alert-error">The prefetching setting is ignored for consumers that do not use explicit acknowledgements.</span>
 
