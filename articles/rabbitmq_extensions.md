@@ -10,7 +10,7 @@ TBD
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.0-beta4.
+This guide covers Langohr 1.0-beta7.
 
 
 
