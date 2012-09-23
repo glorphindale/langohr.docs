@@ -524,7 +524,7 @@ It is possible to purge a queue (remove all of the messages from it) using the `
 Note that this example purges a newly declared queue with a unique server-generated name. When a queue is declared,
 it is empty, so for server-named queues, there is no need to purge them before they are used.
 
-## Deleting queues
+## Deleting Queues
 
 To delete a queue, use the `langohr.queue/delete` function:
 
@@ -533,12 +533,12 @@ To delete a queue, use the `langohr.queue/delete` function:
 When a queue is deleted, all of the messages in it are deleted as well.
 
 
-## Queue durability vs message durability
+## Queue Durability vs Message Durability
 
 See [Durability guide](/articles/durability.html)
 
 
-## Vendor-specific extensions related to queues
+## RabbitMQ Extensions Related to Queues
 
 See [RabbitMQ Extensions guide](/articles/rabbitmq_extensions.html)
 
