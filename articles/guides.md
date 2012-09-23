@@ -41,7 +41,7 @@ This guide covers:
  * How to disconnect
 
 
-### [Queues and Consumers](/articles/queues.html) (TBD)
+### [Queues and Consumers](/articles/queues.html)
 
 This guide covers:
 
