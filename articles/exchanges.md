@@ -5,7 +5,11 @@ layout: article
 
 ## About this guide
 
-TBD
+This guide covers the use of exchanges according to the AMQP 0.9.1 specification including message publishing,
+common usage scenarios and how to accomplish typical operations using the Langohr.
+
+This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution 3.0 Unported License</a>
+(including images and stylesheets). The source is available [on Github](https://github.com/clojurewerkz/langohr.docs).
 
 
 ## What version of Langohr does this guide cover?
@@ -13,21 +17,21 @@ TBD
 This guide covers Langohr 1.0-beta8.
 
 
-## Exchanges in AMQP 0.9.1 - overview
+## Exchanges in AMQP 0.9.1 — Overview
 
 ### What are AMQP exchanges?
 
-An <span class="note">exchange</span> accepts messages from a producer application and routes them to message queues. They can be thought of as the
+An *exchange* accepts messages from a producer application and routes them to message queues. They can be thought of as the
 "mailboxes" of the AMQP world. Unlike some other messaging middleware products and protocols, in AMQP, messages are *not* published directly to queues.
-Messages are published to exchanges that route them to queue(s) using pre-arranged criteria called <span class="note">bindings</span>.
+Messages are published to exchanges that route them to queue(s) using pre-arranged criteria called *bindings*.
 
 There are multiple exchange types in the AMQP 0.9.1 specification, each with its own routing semantics. Custom exchange types can be created to deal with
 sophisticated routing scenarios (e.g. routing based on geolocation data or edge cases) or just for convenience.
 
-### Concept of bindings
+### Concept of Bindings
 
-A <span class="note">binding</span> is an association between a queue and an exchange. A queue must be bound to at least one exchange in order to receive
-messages from publishers. Learn more about bindings in the "Bindings guide":/articles/bindings/.
+A *binding* is an association between a queue and an exchange. A queue must be bound to at least one exchange in order to receive
+messages from publishers. Learn more about bindings in the [Bindings guide](/articles/bindings.html).
 
 ### Exchange attributes
 
@@ -37,7 +41,7 @@ Exchanges have several attributes associated with them:
  * Type (direct, fanout, topic, headers or some custom type)
  * Durability
  * Whether the exchange is auto-deleted when no longer used
- * Other metadata (sometimes known as <span class="note">X-arguments</span>)
+ * Other metadata (sometimes known as *X-arguments*)
 
 
 ## Exchange types
@@ -55,10 +59,10 @@ begin with "x-", much like custom HTTP headers, e.g. [x-consistent-hash exchange
 ## Message attributes
 
 Before we start looking at various exchange types and their routing semantics, we need to introduce message attributes. Every AMQP message has a number
-of <span class="note">attributes</span>. Some attributes are important and used very often, others are rarely used. AMQP message attributes are metadata
+of *attributes*. Some attributes are important and used very often, others are rarely used. AMQP message attributes are metadata
 and are similar in purpose to HTTP request and response headers.
 
-Every AMQP 0.9.1 message has an attribute called <span class="note">routing key</span>. The routing key is an "address" that the exchange may use to decide
+Every AMQP 0.9.1 message has an attribute called *routing key*. The routing key is an "address" that the exchange may use to decide
 how to route the message . This is similar to, but more generic than, a URL in HTTP. Most exchange types use the routing key to implement routing logic,
 but some ignore it and use other criteria (e.g. message content).
 
@@ -84,33 +88,35 @@ There are two ways to declare a fanout exchange:
 
 Here are two examples to demonstrate:
 
-TBD
+{% gist d7450c5531530e4da444 %}
+
+{% gist 7afd3d390d8df1d62d94 %}
 
 ### Fanout routing example
 
 To demonstrate fanout routing behavior we can declare ten server-named exclusive queues, bind them all to one fanout exchange and then
 publish a message to the exchange:
 
-TBD
+{% gist b870db0c8436c2410748 %}
 
 When run, this example produces the following output:
 
-<code>Queue amq.gen-0p/BjxGNCue42RcJhpUrdg== received Hello, fanout exchanges world!
-Queue amq.gen-3GXULvZuYh1KsOD83yvlNg== received Hello, fanout exchanges world!
-Queue amq.gen-4EcyydTfoZzXjNSSLsh09Q== received Hello, fanout exchanges world!
-Queue amq.gen-B1isyTpR5svB6ClQ2TQEBQ== received Hello, fanout exchanges world!
-Queue amq.gen-FwLLioB7Mk4LGA4yJ1Mo7A== received Hello, fanout exchanges world!
-Queue amq.gen-OtBQokiA/DmNkB5bPzaRig== received Hello, fanout exchanges world!
-Queue amq.gen-RYHQUrj3yihb0DRF7KVpRg== received Hello, fanout exchanges world!
-Queue amq.gen-SZJ40mGwbhdcbOGeHMhUkg== received Hello, fanout exchanges world!
-Queue amq.gen-sDeVZg9Vx1knq+n9EMi8tA== received Hello, fanout exchanges world!
-Queue amq.gen-uWOuVaosW4bWAHqKG6pZVw== received Hello, fanout exchanges world!</code>
+<pre>
+[consumer] amq.gen-wh_xtqSpvRY_N6miyl6vWv received a message: Ping
+[consumer] amq.gen-wGO_q4bC7p4TuuEU-uHDbw received a message: Ping
+[consumer] amq.gen-w2AFtJSaB1Z8mwWYfb0Vl2 received a message: Ping
+[consumer] amq.gen-gVJ7vmuTu1zpclZLWGG3-N received a message: Ping
+[consumer] amq.gen-g9_mdSEW9kk7yrcjsk5VGg received a message: Ping
+[consumer] amq.gen-g-DMp1pnNxhAMBgPWtWIfR received a message: Ping
+[consumer] amq.gen-g-5HZnGHH3e7Rdj52EU6Dg received a message: Ping
+[consumer] amq.gen-Q74z06gfqFAXIgr6uDDy0H received a message: Ping
+[consumer] amq.gen-AXiszOM5LD5MmISDDnEHwV received a message: Ping
+[consumer] amq.gen-AHMourpNZFX6Hiq8NtVTaA received a message: Ping
+[main] Disconnecting...
+</pre>
 
 Each of the queues bound to the exchange receives a *copy* of the message.
 
-Full example:
-
-{% gist  %}
 
 ### Fanout use cases
 
@@ -153,7 +159,9 @@ Here is a graphical representation:
 
 Here are two examples to demonstrate:
 
-TBD
+{% gist 9c2c932619470d4e3fe1 %}
+
+{% gist a9bda76fd22b677c3eed %}
 
 ### Direct routing example
 
@@ -162,11 +170,8 @@ Since direct exchanges use the *message routing key* for routing, message produc
 TBD
 
 The routing key will then be compared for equality with routing keys on bindings, and consumers that subscribed with
-the same routing key each get a copy of the message:
+the same routing key each get a copy of the message.
 
-Full example:
-
-{% gist  %}
 
 ### Direct Exchanges and Load Balancing of Messages
 
@@ -180,7 +185,7 @@ The [Queues and Consumers](/articles/queues.html) guide provide more information
 AMQP 0.9.1 brokers must implement a direct exchange type and pre-declare two instances:
 
  * `amq.direct`
- * *""* exchange known as <span class="note">default exchange</span> (unnamed, referred to as an empty string by many clients including amqp Ruby gem)
+ * *""* exchange known as *default exchange* (unnamed, referred to as an empty string by many clients including amqp Ruby gem)
 
 Applications can rely on those exchanges always being available to them. Each vhost has separate instances of those
 exchanges, they are *not shared across vhosts* for obvious reasons.
@@ -464,7 +469,7 @@ by the RabbitMQ team. The next sections of this guide will describe how the feat
 
 ### Publishing messages as mandatory
 
-When publishing messages, it is possible to use the ":mandatory" option to publish a message as "mandatory". When a mandatory message cannot be *routed*
+When publishing messages, it is possible to use the `:mandatory` option to publish a message as "mandatory". When a mandatory message cannot be *routed*
 to any queue (for example, there are no bindings or none of the bindings match), the message is returned to the producer.
 
 The following code example demonstrates a message that is published as mandatory but cannot be routed (no bindings) and thus is returned back to the producer:
@@ -474,7 +479,7 @@ TBD
 
 ### Publishing messages as immediate
 
-When publishing messages, it is possible to use the ":immediate" option to publish a message as "immediate". When an immediate message cannot be
+When publishing messages, it is possible to use the `:immediate` option to publish a message as "immediate". When an immediate message cannot be
 delivered to any consumer (meaning that one or more queues to which the message was routed have no active consumers), then the message is returned to the producer.
 
 An example of `langohr.basic/publish` being used to publish an immediate message:
@@ -495,7 +500,7 @@ When a message is returned, the application that produced it can handle that mes
  * Log the event and discard the message
 
 Returned messages contain information about the exchange they were published to. Langohr associates
-returned message callbacks with consumers. To handle returned messages, use {% yard_link AMQP::Exchange#on_return %}:
+returned message callbacks with consumers. To handle returned messages, use ``:
 
 TBD
 
@@ -677,10 +682,6 @@ TBD
 ### Auto-deleted exchanges
 
 Exchanges can be *auto-deleted*. To declare an exchange as auto-deleted, use the `:auto_delete` option on declaration:
-
-TBD
-
-Full example:
 
 TBD
 
