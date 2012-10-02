@@ -167,7 +167,7 @@ Here are two examples to demonstrate:
 
 Since direct exchanges use the *message routing key* for routing, message producers need to specify it:
 
-TBD
+{% gist c4173ef783f3ccf1fd5e %}
 
 The routing key will then be compared for equality with routing keys on bindings, and consumers that subscribed with
 the same routing key each get a copy of the message.
@@ -200,19 +200,12 @@ For example, when you declare a queue with the name of "search.indexing.online",
 as the routing key. Therefore a message published to the default exchange with routing key = "search.indexing.online" will be routed to the queue "search.indexing.online".
 In other words, the default exchange makes it *seem like it is possible to deliver messages directly to queues*, even though that is not technically what is happening.
 
-TBD
-
-
-Some examples of usage:
-
-TBD
-
 The default exchange is used by the "Hello, World" example:
 
-{% gist  %}
+{% gist 60f82913ed69f0ff24f6 %}
 
 
-### Direct exchange use cases
+### Direct Exchange Use Cases
 
 Direct exchanges can be used in a wide variety of cases:
 
@@ -222,9 +215,9 @@ Direct exchanges can be used in a wide variety of cases:
  * Passing data between workflow steps, each having an identifier (also consider using headers exchange)
  * Delivering notifications to individual software services in the network
 
-## Topic exchanges
+## Topic Exchanges
 
-### How topic exchanges route messages
+### How Topic Exchanges Route Messages
 
 Topic exchanges route messages to one or many queues based on matching between a message routing key and the pattern that was used to bind a queue to an exchange.
 The topic exchange type is often used to implement various [publish/subscribe pattern](http://en.wikipedia.org/wiki/Publish/subscribe) variations.
@@ -236,13 +229,13 @@ Topic exchanges are commonly used for the [multicast routing](http://en.wikipedi
 Topic exchanges can be used for [broadcast routing](http://en.wikipedia.org/wiki/Broadcasting_%28computing%29), but fanout exchanges are usually
 more efficient for this use case.
 
-### Topic exchange routing example
+### Topic Exchange Routing Example
 
 Two classic examples of topic-based routing are stock price updates and location-specific data (for instance, weather broadcasts). Consumers indicate which
 topics they are interested in (think of it like subscribing to a feed for an individual tag of your favourite blog as opposed to the full feed). The routing is enabled
 by specifying a *routing pattern* to the `langohr.queue/bind` function, for example:
 
-TBD
+{% gist f885521b917f1d747fb1 %}
 
 In the example above we bind a queue with the name of "americas.south" to the topic exchange declared earlier using the `langohr.queue/bind` function. This means that
 only messages with a routing key matching "americas.south.#" will be routed to the "americas.south" queue.
@@ -279,7 +272,7 @@ As you can see, the "*" part of the pattern matches 1 word only.
 
 Full example:
 
-{% gist  %}
+{% gist 2ad3c805d32d16076559 %}
 
 ### Topic Exchange Use Cases
 
@@ -296,15 +289,12 @@ they want to receive, the use of topic exchanges should be considered. To name a
 
 ## Declaring/Instantiating Exchanges
 
-With Langohr, exchanges can be declared in two ways:
+With Langohr, exchanges can be declared in two ways: by using the `langohr.exchange/declare` or by using a number of convenience function:
 
- * By using the `langohr.exchange/declare`
- * By using a number of convenience function:
-
-  ** `langohr.exchange/direct`
-  ** `langohr.exchange/topic`
-  ** `langohr.exchange/fanout`
-  ** `langohr.exchange/headers`
+  * `langohr.exchange/direct`
+  * `langohr.exchange/topic`
+  * `langohr.exchange/fanout`
+  * `langohr.exchange/headers`
 
 The previous sections on specific exchange types (direct, fanout, headers, etc.) provide plenty of examples of how these methods can be used.
 
@@ -312,10 +302,13 @@ The previous sections on specific exchange types (direct, fanout, headers, etc.)
 
 To publish a message to an AMQP exchange, use `langohr.basic/publish`:
 
-TBD
+{% gist 2577b9c08ff5657dfff6 %}
 
 
-The function accepts either byte arrays or strings. The message payload is completely opaque to the library and is not modified in any way.
+The function accepts a channel, an exchange, a routing key (can be an empty string but *not nil*), a body and a number of
+message and delivery metadata options.
+
+The body can be either a byte array or a string. The message payload is completely opaque to the library and is not modified in any way.
 
 ### Data serialization
 
@@ -474,17 +467,13 @@ to any queue (for example, there are no bindings or none of the bindings match),
 
 The following code example demonstrates a message that is published as mandatory but cannot be routed (no bindings) and thus is returned back to the producer:
 
-TBD
+{% gist 98a17fe7b7a0619b3b36 %}
 
 
 ### Publishing messages as immediate
 
 When publishing messages, it is possible to use the `:immediate` option to publish a message as "immediate". When an immediate message cannot be
 delivered to any consumer (meaning that one or more queues to which the message was routed have no active consumers), then the message is returned to the producer.
-
-An example of `langohr.basic/publish` being used to publish an immediate message:
-
-TBD
 
 <div class="alert alert-error">
 RabbitMQ versions starting with 2.9 drop support for the `:immediate` flag.
@@ -500,11 +489,11 @@ When a message is returned, the application that produced it can handle that mes
  * Log the event and discard the message
 
 Returned messages contain information about the exchange they were published to. Langohr associates
-returned message callbacks with consumers. To handle returned messages, use ``:
+returned message callbacks with consumers. To handle returned messages, use `langohr.basic/add-return-listener`:
 
-TBD
+{% gist 98a17fe7b7a0619b3b36 %}
 
-A returned message handler has access to AMQP method (`basic.return`) information, message metadata and payload.
+A returned message handler has access to AMQP method (`basic.return`) information, message metadata and payload (as a byte array).
 The metadata and message body are returned without modifications so that the application can store the message for later redelivery.
 
 
@@ -516,7 +505,7 @@ AMQP 0.9.1 lets applications trade off performance for durability, or vice versa
 
 To publish a persistent message, use the `:persistent` option that `langohr.basic/publish` accepts:
 
-TBD
+{% gist 3a8629743b21c8872d97 %}
 
 <div class="alert alert-error">
 Note that in order to survive a broker crash, both the message and the queue that it was routed to must be persistent/durable.
@@ -555,52 +544,41 @@ attributes (headers) rather than a routing key string.
 #### Routing on Multiple Message Attributes
 
 Headers exchanges route messages based on message header matching. Headers exchanges ignore the routing key attribute. Instead, the attributes used for
-routing are taken from the "headers" attribute. When a queue is bound to a headers exchange, the ":arguments" attribute is used to define matching rules:
+routing are taken from the "headers" attribute. When a queue is bound to a headers exchange, the `:arguments` attribute is used to define matching rules:
 
-TBD
+{% gist 0ac3c7ef455ac0fd12a6 %}
 
-When matching on one header, a message is considered matching if the value of the header equals the value specified upon binding. Using the example above,
-some messages that match would be:
+When matching on one header, a message is considered matching if the value of the header equals the value specified upon binding. An example
+that demonstrates headers routing:
 
-TBD
+{% gist 7373f4ace4ca5d713186 %}
 
-The following example demonstrates matching on integer values:
+When executed, it outputs
 
-TBD
+{% gist b4359dbf7d91d93440cb %}
 
 
 #### Matching All vs Matching One
 
 It is possible to bind a queue to a headers exchange using more than one header for matching. In this case, the broker needs one more piece of information
-from the application developer, namely, should it consider messages with any of the headers matching, or all of them? This is what the "x-match" binding argument is for:
+from the application developer, namely, should it consider messages with any of the headers matching, or all of them? This is what the "x-match" binding argument is for.
 
-TBD
-
-When the `"x-match"` argument is set to "any", just one matching header value is sufficient. So in the example above, any message with a "cores" header value equal to
+When the `"x-match"` argument is set to `"any"`, just one matching header value is sufficient. So in the example above, any message with a "cores" header value equal to
 8 will be considered matching.
 
 
 
 ### Declaring a Headers Exchange
 
-There are two ways to declare a headers exchange:
+To declare a headers exchange, use `langohr.exchange/declare` and specify the exchange type as `"headers"`:
 
- * By using `langohr.exchange/declare` and specifying type as `"headers"`
- * By using the `langohr.exchange/headers`
+{% gist 72ba6603a246199854dd %}
 
-Here are two examples to demonstrate:
-
-TBD
-
-### Headers Exchange Routing Example
+### Headers Exchange Routing
 
 When there is just one queue bound to a headers exchange, messages are routed to it if any or all of the message headers match those specified upon binding.
-Whether it is "any header" or "all of them" depends on the "x-match" header value. In the case of multiple queues, a headers exchange will deliver
+Whether it is "any header" or "all of them" depends on the `"x-match"` header value. In the case of multiple queues, a headers exchange will deliver
 a copy of a message to each queue, just like direct exchanges do. Distribution rules between consumers on a particular queue are the same as for a direct exchange.
-
-Full example:
-
-TBD
 
 ### Headers Exchange Use Cases
 
@@ -615,8 +593,8 @@ Some specific use cases:
 
 ### Pre-declared Headers Exchanges
 
-AMQP 0.9.1 brokers should (as defined by [IETF RFC 2119](http://www.ietf.org/rfc/rfc2119.txt)) implement a headers exchange type and pre-declare one instance with
-the name of "amq.match". RabbitMQ also pre-declares one instance with the name of "amq.headers". Applications can rely on that exchange always being available to them.
+AMQP 0.9.1 brokers [should](http://www.ietf.org/rfc/rfc2119.txt) implement a headers exchange type and pre-declare one instance with
+the name of `"amq.match"`. RabbitMQ also pre-declares one instance with the name of `"amq.headers"`. Applications can rely on that exchange always being available to them.
 Each vhost has a separate instance of those exchanges and they are *not shared across vhosts* for obvious reasons.
 
 ## Custom Exchange Types
@@ -626,10 +604,8 @@ Each vhost has a separate instance of those exchanges and they are *not shared a
 The [x-random AMQP exchange type](https://github.com/jbrisbin/random-exchange) is a custom exchange type developed as a RabbitMQ plugin by Jon Brisbin.
 To quote from the project README:
 
-<blockquote>
-It is basically a direct exchange, with the exception that, instead of each consumer bound to that exchange with the same routing key getting a copy of the message,
-the exchange type randomly selects a queue to route to.
-</blockquote>
+> It is basically a direct exchange, with the exception that, instead of each consumer bound to that exchange with the same routing key
+> getting a copy of the message, the exchange type randomly selects a queue to route to.
 
 This plugin is licensed under [Mozilla Public License 1.1](http://www.mozilla.org/MPL/MPL-1.1.html), same as RabbitMQ.
 
@@ -647,13 +623,13 @@ in depth in the [Queues guide](/articles/queues.html), including prefetching and
 In this guide, we will only mention how message acknowledgements are related to AMQP transactions and the Publisher Confirms extension. Let us consider
 a publisher application (P) that communications with a consumer (C) using AMQP 0.9.1. Their communication can be graphically represented like this:
 
-<code>
+<pre>
 -----       -----       -----
 |   |   S1  |   |   S2  |   |
 | P | ====> | B | ====> | C |
 |   |       |   |       |   |
 -----       -----       -----
-</code>
+</pre>
 
 We have two network segments, S1 and S2. Each of them may fail. P is concerned with making sure that messages cross S1, while the broker (B) and C are concerned
 with ensuring that messages cross S2 and are only removed from the queue when they are processed successfully.
@@ -677,13 +653,13 @@ Queues are unbound from exchanges using the `langohr.queue/unbind`. This topic i
 
 Exchanges are deleted using the `langohr.exchange/delete`:
 
-TBD
+{% gist 65a1ecb01db416bceba8 %}
 
 ### Auto-deleted exchanges
 
 Exchanges can be *auto-deleted*. To declare an exchange as auto-deleted, use the `:auto_delete` option on declaration:
 
-TBD
+{% gist 6b06bb49e5bf77c017d1 %}
 
 
 ## Exchange durability vs Message durability
@@ -699,7 +675,17 @@ See [Vendor-specific Extensions guide](/articles/rabbitmq_extensions.html)
 
 ## Wrapping Up
 
-TBD
+Publishers publish messages to exchanges. Messages are then routed to queues according to rules called bindings
+that applications define. There are 4 built-in exchange types in RabbitMQ and it is possible to create custom
+types.
+
+Messages have a set of standard properties (e.g. type, content type) and can carry an arbitrary map
+of headers.
+
+Most functions related to exchanges are found in two Langohr namespaces:
+
+ * `langohr.exchange`
+ * `langohr.basic`
 
 ## What to Read Next
 
