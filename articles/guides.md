@@ -58,7 +58,7 @@ This guide covers:
  * Other topics related to queues
 
 
-### [Exchanges and Publishing](/articles/exchanges.html) (TBD)
+### [Exchanges and Publishing](/articles/exchanges.html)
 
 This guide covers:
 
