@@ -77,7 +77,7 @@ This guide covers:
  * Other topics related to exchanges and publishing
 
 
-### [Bindings](/articles/bindings.html) (TBD)
+### [Bindings](/articles/bindings.html)
 
 This guide covers:
 
@@ -113,11 +113,14 @@ This guide covers:
 
 ### [RabbitMQ Extensions to AMQP 0.9.1](/articles/rabbitmq_extensions.html) (TBD)
 
-This guide covers:
+This guide covers [RabbitMQ extensions](http://www.rabbitmq.com/extensions.html) and how they are used in Langohr:
 
  * How to use Publishing Confirms with Langohr
  * How to set per-queue message TTL
- * 
+ * How to use exchange-to-exchange bindings
+ * How to the alternate exchange extension
+ * What are consumer cancellation notifications and how to use them
+ * Message *dead lettering* and the dead letter exchange
 
 
 ### [Troubleshooting](/articles/troubleshooting.html) (TBD)
