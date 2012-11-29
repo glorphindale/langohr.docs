@@ -12,7 +12,7 @@ We recommend that you read these guides, if possible, in this order:
 
 ###  [Getting started](/articles/getting_started.html)
 
-An overview of Project Name with a quick tutorial that helps you to get started with it. It should take about
+An overview of Langohr with a quick tutorial that helps you to get started with it. It should take about
 15 minutes to read and study the provided code examples.
 
 
