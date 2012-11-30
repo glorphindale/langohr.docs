@@ -105,7 +105,7 @@ URI.
 
 ## Opening a Channel
 
-Some applications need multiple connections to an AMQP broker. However, it is undesirable to keep many TCP connections open at the same time because
+Some applications need multiple connections to RabbitMQ. However, it is undesirable to keep many TCP connections open at the same time because
 doing so consumes system resources and makes it more difficult to configure firewalls. AMQP 0-9-1 connections are multiplexed with channels that can
 be thought of as "lightweight connections that share a single TCP connection".
 
