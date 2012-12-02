@@ -504,14 +504,14 @@ result in a channel-level exception.
 It is possible to query the number of messages sitting in the queue by declaring the queue
 with the `:passive` attribute set.
 The response (`queue.declare-ok` AMQP method) will include the number of messages along with
-other attributes. However, the amqp gem provides a convenience function `langohr.queue/status`:
+other attributes. However, Langohr provides a convenience function `langohr.queue/status`:
 
 {% gist 7703ef627a4234b2cabe %}
 
 ## Querying the Number of Consumers On a Queue
 
 It is possible to query the number of consumers on a queue by declaring the queue with the ":passive" attribute set. The response (`queue.declare-ok` AMQP method)
-will include the number of consumers along with other attributes. However, the amqp gem provides a convenience function `langohr.queue/status`:
+will include the number of consumers along with other attributes. However, Langohr provides a convenience function `langohr.queue/status`:
 
 {% gist adb53fc1201630a5199c %}
 
