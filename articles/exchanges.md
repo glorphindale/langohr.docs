@@ -330,7 +330,6 @@ AMQP messages have various metadata attributes that can be set when a message is
 others are specific to a particular application. Well-known attributes are listed here as options that `langohr.basic/publish` takes:
 
  * `:persistent`
- * `:immediate`
  * `:mandatory`
  * `:content-type`
  * `:content-encoding`
