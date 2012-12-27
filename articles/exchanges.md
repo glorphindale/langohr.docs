@@ -356,13 +356,6 @@ An example:
   <dt>:persistent</dt>
   <dd>When set to true, AMQP broker will persist message to disk.</dd>
 
-  <dt>:immediate</dt>
-  <dd>
-  This flag tells the server how to react if the message cannot be routed to a queue consumer immediately. If this flag is set to true, the server will return
-  an undeliverable message to the producer with a basic.return AMQP method. If this flag is set to false, the server will queue the message, but with no guarantee
-  that it will ever be consumed.
-  </dd>
-
   <dt>:mandatory</dt>
   <dd>
   This flag tells the server how to react if the message cannot be routed to a queue. If this flag is set to true, the server will return an unroutable message
@@ -467,16 +460,6 @@ to any queue (for example, there are no bindings or none of the bindings match),
 The following code example demonstrates a message that is published as mandatory but cannot be routed (no bindings) and thus is returned back to the producer:
 
 {% gist 98a17fe7b7a0619b3b36 %}
-
-
-### Publishing messages as immediate
-
-When publishing messages, it is possible to use the `:immediate` option to publish a message as "immediate". When an immediate message cannot be
-delivered to any consumer (meaning that one or more queues to which the message was routed have no active consumers), then the message is returned to the producer.
-
-<div class="alert alert-error">
-RabbitMQ versions starting with 2.9 drop support for the `:immediate` flag.
-</div>
 
 
 ### Returned messages
