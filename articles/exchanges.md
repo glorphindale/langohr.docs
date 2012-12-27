@@ -347,7 +347,7 @@ All other attributes can be added to a *headers table* (in Clojure, a map) that 
 
 An example:
 
-{% gist  %}
+{% gist 0c43bb24cba42139b8ba %}
 
 <dl>
   <dt>:routing-key</dt>
