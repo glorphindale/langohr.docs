@@ -193,7 +193,7 @@ exchanges, they are *not shared across vhosts* for obvious reasons.
 
 ### Default exchange
 
-The default exchange is a direct exchange with no name (the amqp gem refers to it using an empty string) pre-declared by the broker. It has one special
+The default exchange is a direct exchange with no name (the Langohr refers to it using an empty string) pre-declared by the broker. It has one special
 property that makes it very useful for simple applications, namely that *every queue is automatically bound to it with a routing key which is the same as the queue name*.
 
 For example, when you declare a queue with the name of "search.indexing.online", the AMQP broker will bind it to the default exchange using "search.indexing.online"
@@ -498,7 +498,7 @@ Note that in order to survive a broker crash, both the message and the queue tha
 ### Publishing In Multi-threaded Environments
 
 <div class="alert alert-error">
-When using amqp gem in multi-threaded environments, the rule of thumb is: avoid sharing channels across threads.
+When using Langohr in multi-threaded environments, the rule of thumb is: avoid sharing channels across threads.
 </div>
 
 In other words, publishers in your application that publish from separate threads should use their own channels. The
