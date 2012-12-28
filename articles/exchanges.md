@@ -622,12 +622,12 @@ lightweight Publisher Confirms, a RabbitMQ-specific extension.
 
 ## Binding Queues to Exchanges
 
-Queues are bound to exchanges using the `langohr.queue/bind`. This topic is described in detail in the [Queues guide](/articles/queues.html).
+Queues are bound to exchanges using `langohr.queue/bind`. This topic is described in detail in the [Queues guide](/articles/queues.html).
 
 
 ## Unbinding Queues from Exchanges
 
-Queues are unbound from exchanges using the `langohr.queue/unbind`. This topic is described in detail in the [Queues guide](/articles/queues.html).
+Queues are unbound from exchanges using `langohr.queue/unbind`. This topic is described in detail in the [Queues guide](/articles/queues.html).
 
 ## Deleting Exchange
 
