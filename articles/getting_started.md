@@ -20,7 +20,7 @@ This work is licensed under a <a rel="license" href="http://creativecommons.org/
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.0-beta10.
+This guide covers Langohr 1.0-beta11.
 
 
 ## Supported Clojure Versions
