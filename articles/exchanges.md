@@ -14,7 +14,7 @@ This work is licensed under a <a rel="license" href="http://creativecommons.org/
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.0-beta11.
+This guide covers Langohr 1.0-beta12.
 
 
 ## Exchanges in AMQP 0.9.1 — Overview
@@ -88,20 +88,65 @@ There are two ways to declare a fanout exchange:
 
 Here are two examples to demonstrate:
 
-{% gist d7450c5531530e4da444 %}
+``` clojure
+(require '[langohr.exchange :as le])
+ 
+(le/declare ch "activity.events" "fanout")
+```
 
-{% gist 7afd3d390d8df1d62d94 %}
+``` clojure
+(require '[langohr.exchange :as le])
+ 
+(le/fanout ch "activity.events")
+```
 
 ### Fanout routing example
 
 To demonstrate fanout routing behavior we can declare ten server-named exclusive queues, bind them all to one fanout exchange and then
 publish a message to the exchange:
 
-{% gist b870db0c8436c2410748 %}
+``` clojure
+(ns clojurewerkz.langohr.examples.fanout-routing
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.exchange  :as le]
+            [langohr.queue     :as lq]
+            [langohr.consumers :as lc]
+            [langohr.basic     :as lb]))
+ 
+ 
+(defn start-consumer
+  "Starts a consumer in a separate thread"
+  [ch queue-name]
+  (let [handler (fn [ch metadata ^bytes payload]
+                  (println (format "[consumer] %s received a message: %s"
+                                   queue-name
+                                   (String. payload "UTF-8"))))
+        thread  (Thread. (fn []
+                           (lc/subscribe ch queue-name handler :auto-ack true)))]
+    (.start thread)))
+ 
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        ename "langohr.examples.fanout"]
+    (le/declare ch ename "fanout")    
+    (dotimes [i 10]
+      (let [q (.getQueue (lq/declare ch "" :exclusive false :auto-delete true))]
+        (lq/bind    ch q ename)
+        (start-consumer ch q)))
+    (lb/publish ch ename "" "Ping" :content-type "text/plain")
+    (Thread/sleep 2000)
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
 
 When run, this example produces the following output:
 
-<pre>
+```
 [consumer] amq.gen-wh_xtqSpvRY_N6miyl6vWv received a message: Ping
 [consumer] amq.gen-wGO_q4bC7p4TuuEU-uHDbw received a message: Ping
 [consumer] amq.gen-w2AFtJSaB1Z8mwWYfb0Vl2 received a message: Ping
@@ -113,7 +158,7 @@ When run, this example produces the following output:
 [consumer] amq.gen-AXiszOM5LD5MmISDDnEHwV received a message: Ping
 [consumer] amq.gen-AHMourpNZFX6Hiq8NtVTaA received a message: Ping
 [main] Disconnecting...
-</pre>
+```
 
 Each of the queues bound to the exchange receives a *copy* of the message.
 
@@ -159,15 +204,59 @@ Here is a graphical representation:
 
 Here are two examples to demonstrate:
 
-{% gist 9c2c932619470d4e3fe1 %}
+``` clojure
+(require '[langohr.exchange :as le])
+ 
+(le/declare ch "imaging" "direct")
+```
 
-{% gist a9bda76fd22b677c3eed %}
+``` clojure
+(require '[langohr.exchange :as le])
+ 
+(le/direct ch "imaging")
+```
 
 ### Direct routing example
 
 Since direct exchanges use the *message routing key* for routing, message producers need to specify it:
 
-{% gist c4173ef783f3ccf1fd5e %}
+``` clojure
+(ns clojurewerkz.langohr.examples.direct-routing
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.exchange  :as le]
+            [langohr.queue     :as lq]
+            [langohr.consumers :as lc]
+            [langohr.basic     :as lb]))
+ 
+ 
+(defn start-consumer
+  "Starts a consumer in a separate thread"
+  [ch queue-name]
+  (let [handler (fn [ch metadata ^bytes payload]
+                  (println (format "[consumer] %s received a message: %s"
+                                   queue-name
+                                   (String. payload "UTF-8"))))
+        thread  (Thread. (fn []
+                           (lc/subscribe ch queue-name handler :auto-ack true)))]
+    (.start thread)))
+ 
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        ename "langohr.examples.direct"]
+    (le/declare ch ename "direct")
+    (let [q (.getQueue (lq/declare ch "" :exclusive false :auto-delete true))]
+      (lq/bind ch q ename :routing-key "pings")
+      (start-consumer ch q))
+    (lb/publish ch ename "pings" "Ping" :content-type "text/plain")
+    (Thread/sleep 2000)
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
 
 The routing key will then be compared for equality with routing keys on bindings, and consumers that subscribed with
 the same routing key each get a copy of the message.
@@ -202,7 +291,44 @@ In other words, the default exchange makes it *seem like it is possible to deliv
 
 The default exchange is used by the "Hello, World" example:
 
-{% gist 60f82913ed69f0ff24f6 %}
+``` clojure
+(ns clojurewerkz.langohr.examples.hello-world
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.queue     :as lq]
+            [langohr.consumers :as lc]
+            [langohr.basic     :as lb]))
+ 
+(def ^{:const true}
+  default-exchange-name "")
+ 
+(defn message-handler
+  [ch {:keys [content-type delivery-tag type] :as meta} ^bytes payload]
+  (println (format "[consumer] Received a message: %s, delivery tag: %d, content type: %s, type: %s"
+                   (String. payload "UTF-8") delivery-tag content-type type)))
+ 
+(defn start-consumer
+  "Starts a consumer in a separate thread"
+  [conn ch queue-name]
+  (let [thread (Thread. (fn []
+                          (lc/subscribe ch queue-name message-handler :auto-ack true)))]
+    (.start thread)))
+ 
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        qname "langohr.examples.hello-world"]
+    (println (format "[main] Connected. Channel id: %d" (.getChannelNumber ch)))
+    (lq/declare ch qname :exclusive false :auto-delete true)
+    (start-consumer conn ch qname)
+    (lb/publish ch default-exchange-name qname "Hello!" :content-type "text/plain" :type "greetings.hi")
+    (Thread/sleep 2000)
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
 
 
 ### Direct Exchange Use Cases
@@ -235,7 +361,11 @@ Two classic examples of topic-based routing are stock price updates and location
 topics they are interested in (think of it like subscribing to a feed for an individual tag of your favourite blog as opposed to the full feed). The routing is enabled
 by specifying a *routing pattern* to the `langohr.queue/bind` function, for example:
 
-{% gist f885521b917f1d747fb1 %}
+``` clojure
+(require '[langohr.exchange :as le])
+ 
+(lq/bind ch "crawler.d98fd46e880ab4541d9570f671a9272811c5c438" "requests.crawling" :routing-key "#.org")
+```
 
 In the example above we bind a queue with the name of "americas.south" to the topic exchange declared earlier using the `langohr.queue/bind` function. This means that
 only messages with a routing key matching "americas.south.#" will be routed to the "americas.south" queue.
@@ -272,7 +402,61 @@ As you can see, the "*" part of the pattern matches 1 word only.
 
 Full example:
 
-{% gist 2ad3c805d32d16076559 %}
+``` clojure
+(ns clojurewerkz.langohr.examples.weathr
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.queue     :as lq]
+            [langohr.exchange  :as le]
+            [langohr.consumers :as lc]
+            [langohr.basic     :as lb]))
+ 
+(def ^{:const true}
+  weather-exchange "weathr")
+ 
+(defn start-consumer
+  "Starts a consumer bound to the given topic exchange in a separate thread"
+  [ch topic-name queue-name]
+  (let [queue-name' (.getQueue (lq/declare ch queue-name :exclusive false :auto-delete true))
+        handler     (fn [ch {:keys [routing-key] :as meta} ^bytes payload]
+                      (println (format "[consumer] Consumed '%s' from %s, routing key: %s" (String. payload "UTF-8") queue-name' routing-key)))]
+    (lq/bind    ch queue-name' weather-exchange :routing-key topic-name)
+    (.start (Thread. (fn []
+                       (lc/subscribe ch queue-name' handler :auto-ack true))))))
+ 
+(defn publish-update
+  "Publishes a weather update"
+  [ch payload routing-key]
+  (lb/publish ch weather-exchange routing-key payload :content-type "text/plain" :type "weather.update"))
+ 
+(defn -main
+  [& args]
+  (let [conn      (rmq/connect)
+        ch        (lch/open conn)
+        locations {""               "americas.north.#"
+                   "americas.south" "americas.south.#"
+                   "us.california"  "americas.north.us.ca.*"
+                   "us.tx.austin"   "#.tx.austin"
+                   "it.rome"        "europe.italy.rome"
+                   "asia.hk"        "asia.southeast.hk.#"}]
+    (le/declare ch weather-exchange "topic" :durable false :auto-delete true)
+    (doseq [[k v] locations]
+      (start-consumer ch v k))
+    (publish-update ch "San Diego update" "americas.north.us.ca.sandiego")
+    (publish-update ch "Berkeley update"  "americas.north.us.ca.berkeley")
+    (publish-update ch "SF update"        "americas.north.us.ca.sanfrancisco")
+    (publish-update ch "NYC update"       "americas.north.us.ny.newyork")
+    (publish-update ch "São Paolo update" "americas.south.brazil.saopaolo")
+    (publish-update ch "Hong Kong update" "asia.southeast.hk.hongkong")
+    (publish-update ch "Kyoto update"     "asia.southeast.japan.kyoto")
+    (publish-update ch "Shanghai update"  "asia.southeast.prc.shanghai")
+    (publish-update ch "Rome update"      "europe.italy.roma")
+    (publish-update ch "Paris update"     "europe.france.paris")
+    (Thread/sleep 2000)
+    (rmq/close ch)
+    (rmq/close conn)))
+```
 
 ### Topic Exchange Use Cases
 
@@ -302,7 +486,9 @@ The previous sections on specific exchange types (direct, fanout, headers, etc.)
 
 To publish a message to an AMQP exchange, use `langohr.basic/publish`:
 
-{% gist 2577b9c08ff5657dfff6 %}
+``` clojure
+(lb/publish ch default-exchange-name qname "Hello!" :content-type "text/plain" :type "greetings.hi")
+```
 
 
 The function accepts a channel, an exchange, a routing key (can be an empty string but *not nil*), a body and a number of
@@ -347,7 +533,15 @@ All other attributes can be added to a *headers table* (in Clojure, a map) that 
 
 An example:
 
-{% gist 0c43bb24cba42139b8ba %}
+``` clojure
+(lb/publish ch default-exchange-name qname "Hello!"
+            :content-type "text/plain"
+            :type "greetings.reply"
+            :mandatory true
+            :reply-to "greetings.hi"
+            :arguments {"server" "app5.myapp.megacorp.com"
+                        "cached" false})
+```
 
 <dl>
   <dt>:routing-key</dt>
@@ -459,7 +653,32 @@ to any queue (for example, there are no bindings or none of the bindings match),
 
 The following code example demonstrates a message that is published as mandatory but cannot be routed (no bindings) and thus is returned back to the producer:
 
-{% gist 98a17fe7b7a0619b3b36 %}
+``` clojure
+(ns clojurewerkz.langohr.examples.mandatory-publishing
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.queue     :as lq]
+            [langohr.consumers :as lc]
+            [langohr.basic     :as lb]))
+ 
+(def ^{:const true}
+  default-exchange-name "")
+ 
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        qname (str (java.util.UUID/randomUUID))
+        rl    (lb/return-listener (fn [reply-code reply-text exchange routing-key properties body]
+                                    (println "Message returned. Reply text: " reply-text)))]
+    (.addReturnListener ch rl)
+    (lb/publish ch default-exchange-name qname "Hello!" :content-type "text/plain" :mandatory true)
+    (Thread/sleep 1000)
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
 
 
 ### Returned messages
@@ -473,7 +692,32 @@ When a message is returned, the application that produced it can handle that mes
 Returned messages contain information about the exchange they were published to. Langohr associates
 returned message callbacks with consumers. To handle returned messages, use `langohr.basic/add-return-listener`:
 
-{% gist 98a17fe7b7a0619b3b36 %}
+``` clojure
+(ns clojurewerkz.langohr.examples.mandatory-publishing
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.queue     :as lq]
+            [langohr.consumers :as lc]
+            [langohr.basic     :as lb]))
+ 
+(def ^{:const true}
+  default-exchange-name "")
+ 
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        qname (str (java.util.UUID/randomUUID))
+        rl    (lb/return-listener (fn [reply-code reply-text exchange routing-key properties body]
+                                    (println "Message returned. Reply text: " reply-text)))]
+    (lb/add-return-listener ch rl)
+    (lb/publish ch default-exchange-name qname "Hello!" :content-type "text/plain" :mandatory true)
+    (Thread/sleep 1000)
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
 
 A returned message handler has access to AMQP method (`basic.return`) information, message metadata and payload (as a byte array).
 The metadata and message body are returned without modifications so that the application can store the message for later redelivery.
@@ -487,7 +731,11 @@ AMQP 0.9.1 lets applications trade off performance for durability, or vice versa
 
 To publish a persistent message, use the `:persistent` option that `langohr.basic/publish` accepts:
 
-{% gist 3a8629743b21c8872d97 %}
+``` clojure
+(require '[langohr.basic :as lb])
+ 
+(lb/publish ch "requests.crawling" "datsite.net" payload :content-type "application/json" :type "commands.sitemap.refresh" :persistent true)
+```
 
 <div class="alert alert-error">
 Note that in order to survive a broker crash, both the message and the queue that it was routed to must be persistent/durable.
@@ -528,25 +776,79 @@ attributes (headers) rather than a routing key string.
 Headers exchanges route messages based on message header matching. Headers exchanges ignore the routing key attribute. Instead, the attributes used for
 routing are taken from the "headers" attribute. When a queue is bound to a headers exchange, the `:arguments` attribute is used to define matching rules:
 
-{% gist 0ac3c7ef455ac0fd12a6 %}
+``` clojure
+(require '[langohr.queue :as lq])
+ 
+(lq/bind ch "hosts.ip-172-37-11-56" "requests" :arguments {"os" "Linux"})
+```
 
 When matching on one header, a message is considered matching if the value of the header equals the value specified upon binding. An example
 that demonstrates headers routing:
 
-{% gist 7373f4ace4ca5d713186 %}
+``` clojure
+(ns clojurewerkz.langohr.examples.headers-routing
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.exchange  :as le]
+            [langohr.queue     :as lq]
+            [langohr.consumers :as lc]
+            [langohr.basic     :as lb]))
+ 
+ 
+(defn start-consumer
+  "Starts a consumer in a separate thread"
+  [ch queue-name]
+  (let [handler (fn [ch metadata ^bytes payload]
+                  (println (format "[consumer] %s received a message: %s"
+                                   queue-name
+                                   (String. payload "UTF-8"))))
+        thread  (Thread. (fn []
+                           (lc/subscribe ch queue-name handler :auto-ack true)))]
+    (.start thread)))
+ 
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        ename "langohr.examples.headers"]
+    (le/declare ch ename "headers")
+    (let [qname (.getQueue (lq/declare ch "" :auto-delete true :exclusive false))]
+      (lq/bind ch qname ename :arguments {"os" "linux" "cores" 8 "x-match" "all"})
+      (start-consumer ch qname))
+    (let [qname (.getQueue (lq/declare ch "" :auto-delete true :exclusive false))]
+      (lq/bind ch qname ename :arguments {"os" "osx" "cores" 4 "x-match" "any"})
+      (start-consumer ch qname))    
+    (lb/publish ch ename "" "8 cores/Linux" :content-type "text/plain" :headers {"os" "linux" "cores" 8})
+    (lb/publish ch ename "" "8 cores/OS X"  :content-type "text/plain" :headers {"os" "osx"   "cores" 8})
+    (lb/publish ch ename "" "4 cores/Linux" :content-type "text/plain" :headers {"os" "linux" "cores" 4})
+    (Thread/sleep 2000)
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
 
 When executed, it outputs
 
-{% gist b4359dbf7d91d93440cb %}
+```
+[consumer] amq.gen-gPQORYX_S-7GCyC-ch_Tc9 received a message: 8 cores/OS X
+[consumer] amq.gen-gPQORYX_S-7GCyC-ch_Tc9 received a message: 4 cores/Linux
+[consumer] amq.gen-gQmYGGOXey-gUVOEPVmKTV received a message: 8 cores/Linux
+[main] Disconnecting...
+```
 
 
 #### Matching All vs Matching One
 
-It is possible to bind a queue to a headers exchange using more than one header for matching. In this case, the broker needs one more piece of information
-from the application developer, namely, should it consider messages with any of the headers matching, or all of them? This is what the "x-match" binding argument is for.
+It is possible to bind a queue to a headers exchange using more than
+one header for matching. In this case, the broker needs one more piece
+of information from the application developer, namely, should it
+consider messages with any of the headers matching, or all of them?
+This is what the "x-match" binding argument is for.
 
-When the `"x-match"` argument is set to `"any"`, just one matching header value is sufficient. So in the example above, any message with a "cores" header value equal to
-8 will be considered matching.
+When the `"x-match"` argument is set to `"any"`, just one matching
+header value is sufficient. So in the example above, any message with
+a "cores" header value equal to 8 will be considered matching.
 
 
 
@@ -554,7 +856,11 @@ When the `"x-match"` argument is set to `"any"`, just one matching header value 
 
 To declare a headers exchange, use `langohr.exchange/declare` and specify the exchange type as `"headers"`:
 
-{% gist 72ba6603a246199854dd %}
+``` clojure
+(require '[langohr.exchange :as le])
+ 
+(le/declare ch "langohr.examples.headers" "headers")
+```
 
 ### Headers Exchange Routing
 
@@ -635,13 +941,21 @@ Queues are unbound from exchanges using `langohr.queue/unbind`. This topic is de
 
 Exchanges are deleted using the `langohr.exchange/delete`:
 
-{% gist 65a1ecb01db416bceba8 %}
+``` clojure
+(require '[langohr.exchange :as le])
+ 
+(le/delete ch "requests.crawling")
+```
 
 ### Auto-deleted exchanges
 
 Exchanges can be *auto-deleted*. To declare an exchange as auto-deleted, use the `:auto_delete` option on declaration:
 
-{% gist 6b06bb49e5bf77c017d1 %}
+``` clojure
+(require '[langohr.exchange :as le])
+ 
+(le/declare ch "requests.crawling" "topic" :auto-delete true)
+```
 
 
 ## Exchange durability vs Message durability

@@ -13,7 +13,7 @@ This work is licensed under a <a rel="license" href="http://creativecommons.org/
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.0-beta11.
+This guide covers Langohr 1.0-beta12.
 
 
 ## Bindings In AMQP 0.9.1
@@ -45,18 +45,34 @@ If an application wants to connect a queue to an exchange, it needs to *bind* th
 In order to receive messages, a queue needs to be bound to at least one exchange. Most of the time binding is explcit (done by applications). To bind a queue to an exchange,
 use the `langohr.queue/bind` function:
 
-{% gist 65bfdc7a550684f69174 %}
+``` clojure
+(require '[langohr.queue :as lq])
+ 
+(lq/bind ch "images.resize" "amq.topic")
+```
 
 The same example in context:
 
-{% gist eb464e4d29c167471c96 %}
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+(require '[langohr.queue   :as lq])
+ 
+ 
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  (lq/bind ch "images.resize" "amq.topic"))
+```
 
 
 ## Unbinding Queues From Exchanges
 
 To unbind a queue from an exchange use the `langohr.queue/unbind` function:
 
-{% gist https://gist.github.com/96c1c4752349244fb59d %}
+``` clojure
+(require '[langohr.basic :as lb])
+(lq/unbind channel queue "amq.topic" "streams.twitter.#")
+```
 
 Note that trying to unbind a queue from an exchange that the queue was never bound to will
 result in a channel-level exception.
@@ -96,7 +112,32 @@ Langohr provides a way to handle returned messages with the *return listener* fu
 Returned messages contain information about the exchange they were published to. Langohr associates
 returned message callbacks with consumers. To handle returned messages, use `langohr.basic/add-return-listener`:
 
-{% gist 98a17fe7b7a0619b3b36 %}
+``` clojure
+(ns clojurewerkz.langohr.examples.mandatory-publishing
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.queue     :as lq]
+            [langohr.consumers :as lc]
+            [langohr.basic     :as lb]))
+ 
+(def ^{:const true}
+  default-exchange-name "")
+ 
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        qname (str (java.util.UUID/randomUUID))
+        rl    (lb/return-listener (fn [reply-code reply-text exchange routing-key properties body]
+                                    (println "Message returned. Reply text: " reply-text)))]
+    (.addReturnListener ch rl)
+    (lb/publish ch default-exchange-name qname "Hello!" :content-type "text/plain" :mandatory true)
+    (Thread/sleep 1000)
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
 
 A returned message handler has access to AMQP method (`basic.return`) information, message metadata and payload (as a byte array).
 The metadata and message body are returned without modifications so that the application can store the message for later redelivery.

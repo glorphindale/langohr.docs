@@ -12,7 +12,7 @@ typical operations using Langohr. This work is licensed under a <a rel="license"
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.0-beta11.
+This guide covers Langohr 1.0-beta12.
 
 
 ## Queues in AMQP 0.9.1: Overview
@@ -56,23 +56,66 @@ Applications may pick queue names or ask the broker to generate a name for them.
 
 To declare a queue with a particular name, for example, "images.resize", use the `langohr.queue/declare` function:
 
-{% gist cd461764671162acedc8 %}
+``` clojure
+(require '[langohr.queue :as lq])
+ 
+(lq/declare ch "images.resize" :exclusive false :auto-delete true)
+```
 
 The same example in context:
 
-{% gist 34a585bf186de42aaf3c %}
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+(require '[langohr.queue   :as lq])
+ 
+ 
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  (lq/declare ch "images.resize"  :exclusive false :auto-delete true))
+```
 
 
 ### Server-named queues
 
 To ask an AMQP broker to generate a unique queue name for you, pass an *empty string* as the queue name argument. The returned
-value has the `#getQueue` method that can be used to retrieve the generated queue name:
+value is a map that has the `:queue` key that can be used to retrieve the generated queue name:
 
-{% gist c852bac0fffa3e50f07b %}
+``` clojure
+(require '[langohr.queue :as lq])
+ 
+(let [{:keys [queue]} (lq/declare ch "" :exclusive true)]
+  (println (format "Declared a queue named %s" queue)))
+```
 
 The same example in context:
 
-{% gist 6d48e14ca352d3a176b5 %}
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+(require '[langohr.queue   :as lq])
+ 
+ 
+(let [conn  (rmq/connect)
+      ch    (lch/open conn)
+      {:keys [queue]} (lq/declare ch "" :exclusive true)]
+  (comment ...))
+```
+
+A more convenient way is to use `langohr.queue/declare-server-named` which takes one less argument
+(no need to specify queue name as an empty string) and returns the name of the queue:
+
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+(require '[langohr.queue   :as lq])
+ 
+ 
+(let [conn  (rmq/connect)
+      ch    (lch/open conn)
+      queue (lq/declare-server-named ch :exclusive true)]
+  (comment ...))
+```
 
 
 ### Reserved Queue Name Prefix
@@ -123,22 +166,50 @@ discusses many messaging patterns in depth and the RabbitMQ FAQ also has a secti
 
 To declare a durable shared queue, you pass a queue name that is a non-blank string and use the `:durable` option:
 
-{% gist 13e785d0a282b1c8b755 %}
+``` clojure
+(require '[langohr.queue :as lq])
+ 
+(lq/declare ch "images.resize" :durable true :auto-delete false :exclusive false)
+```
 
 The same example in context:
 
-{% gist 319bd470028b95a9a561 %}
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+(require '[langohr.queue   :as lq])
+ 
+ 
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  (lq/declare ch "images.resize" :durable true :auto-delete false :exclusive false))
+```
 
 
 ## Declaring a Temporary Exclusive Queue
 
-To declare a server-named, exclusive, auto-deleted queue, pass "" (an empty string) as the queue name and use the `:exclusive`:
+To declare a server-named, exclusive, auto-deleted queue, use `langohr.queue/declare-server-named` (or pass "" (an empty string) as the queue name to `langohr.queue/declare`)
+and use the `:exclusive` option:
 
-{% gist c852bac0fffa3e50f07b %}
+``` clojure
+(require '[langohr.queue :as lq])
+
+(lq/declare-server-named ch :exclusive true)
+```
 
 The same example in context:
 
-{% gist 6d48e14ca352d3a176b5 %}
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+(require '[langohr.queue   :as lq])
+ 
+ 
+(let [conn  (rmq/connect)
+      ch    (lch/open conn)
+      queue (lq/declare-server-named ch :exclusive true)]
+  (comment ...))
+```
 
 Exclusive queues may only be accessed by the current connection and are deleted when that connection closes. The declaration of an exclusive queue by other
 connections is not allowed and will result in a channel-level exception with the code `405 (RESOURCE_LOCKED)`
@@ -151,11 +222,24 @@ Exclusive queues will be deleted when the connection they were declare on is clo
 In order to receive messages, a queue needs to be bound to at least one exchange. Most of the time binding is explcit (done by applications). To bind a queue to an exchange,
 use the `langohr.queue/bind` function:
 
-{% gist 65bfdc7a550684f69174 %}
+``` clojure
+(require '[langohr.queue :as lq])
+ 
+(lq/bind ch "images.resize" "amq.topic")
+```
 
 The same example in context:
 
-{% gist eb464e4d29c167471c96 %}
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+(require '[langohr.queue   :as lq])
+ 
+ 
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  (lq/bind ch "images.resize" "amq.topic"))
+```
 
 
 ## Subscribing to receive messages ("push API")
@@ -174,11 +258,20 @@ Consumers are identified by *consumer tags* and have a number of events they can
 
 This is the most important of the three. This handler will process messages that RabbitMQ pushes to the consumer.
 
-{% gist  %}
+``` clojure
+(fn [ch metadata ^bytes payload]
+  (println metadata (String. payload)))
+```
 
-The same example in context:
+The metadata argument is a combined Clojure map of the message metadata (content type, type, reply-to, etc) and
+delivery information (routing key, if the mesasge is redelivered, etc), so it is possible to use map destructuring
+on it:
 
-{% gist %}
+``` clojure
+(fn [ch {:keys [type content-type]} ^bytes payload]
+  (println type content-type (String. payload)))
+```
+
 
 ### Consumer Registration Handler
 
@@ -186,12 +279,25 @@ This handler will be invoked when a confirmation (the `basic.consume-ok` method)
 This usually happens within milliseconds after registering a consumer. This handler is used
 relatively rarely.
 
-{% gist 6c6b276e4c1b271c7647 %}
+``` clojure
+(require '[langohr.consumers :as lcons])
+ 
+(lcons/create-default ch :handle-consume-ok-fn (fn [consumer-tag]
+                                                 (println "Consumer registered")))
+```
 
 The same example in context:
 
-{% gist c6863ced2f85191a3758 %}
-
+``` clojure
+(require '[langohr.core      :as rmq])
+(require '[langohr.channel   :as lch])
+(require '[langohr.consumers :as lcons])
+ 
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  (lcons/create-default ch :handle-consume-ok-fn (fn [consumer-tag]
+                                                   (println "Consumer registered"))))
+```
 
 ### Consumer Cancellation Handler
 
@@ -202,23 +308,59 @@ Consumers can be cancelled by RabbitMQ in some situations:
 
 This handler will react to *consumer cancellation notifications* when one of the aforementioned events happen.
 
-{% gist 42313535e32170afb6cf %}
+``` clojure
+(require '[langohr.consumers :as lcons])
+ 
+(lcons/create-default ch :handle-cancel-fn (fn [consumer-tag]
+                                             (println "Consumer registered")))
+```
 
 The same example in context:
 
-{% gist 7fe8bddba57a17edcae7 %}
-
+``` clojure
+(require '[langohr.core      :as rmq])
+(require '[langohr.channel   :as lch])
+(require '[langohr.consumers :as lcons])
+ 
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  (lcons/create-default ch :handle-cancel-fn (fn [consumer-tag]
+                                               (println "Consumer registered"))))
+```
 
 
 ### Consuming Messages
 
 To start consuming messages, pass a consumer to the `langohr.basic/consume` function:
 
-{% gist c6362a702b2d25d0c0b5 %}
+``` clojure
+(require '[langohr.basic     :as lb])
+(require '[langohr.consumers :as lcons])
+ 
+(let [consumer (lcons/create-default ch :handle-delivery-fn   (fn [ch metadata ^bytes payload]
+                                                                (println "Received a message: " (String. payload)))
+                                     :handle-consume-ok-fn (fn [consumer-tag]
+                                                             (println "Consumer registered")))]
+  (lb/consume ch queue consumer))
+```
 
 The same example in context:
 
-{% gist bc9b18234778e538035d %}
+``` clojure
+(require '[langohr.core      :as rmq])
+(require '[langohr.channel   :as lch])
+(require '[langohr.basic     :as lb])
+(require '[langohr.consumers :as lcons])
+ 
+ 
+(let [conn     (rmq/connect)
+      ch       (lch/open conn)
+      consumer (lcons/create-default ch :handle-delivery-fn   (fn [ch metadata ^bytes payload]
+                                                                (println "Received a message: " (String. payload)))
+                                     :handle-consume-ok-fn (fn [consumer-tag]
+                                                             (println "Consumer registered")))]
+  (lb/consume ch queue consumer))
+```
 
 Then when a message arrives, the message header (metadata) and body (payload) are passed to the *delivery handler*.
 
@@ -230,11 +372,32 @@ it returns the consumer tag.
 
 The `langohr.consumers/subscribe` function starts a consumer that loops and processes messages forever:
 
-{% gist 7f764b28302df126d56d %}
+``` clojure
+(require '[langohr.consumers :as lcm])
+ 
+(lcm/subscribe ch "images.resize"
+               (fn [ch metadata ^bytes payload]
+                 (println (format "[consumer] %s received %s" username (String. payload "UTF-8"))))
+               :auto-ack true)
+```
 
 The same example in context:
 
-{% gist 4a03143b1c601ecf692a %}
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+(require '[langohr.queue   :as lq])
+(require '[langohr.consumers :as lcm])
+ 
+(let [conn       (rmq/connect)
+      ch         (lch/open conn)
+      queue-name (format "nba.newsfeeds.%s" username)
+      handler    (fn [ch metadata ^bytes payload]
+                   (println (format "[consumer] Received %s" (String. payload "UTF-8"))))]
+  (lq/declare ch queue-name :exclusive false :auto-delete true)
+  (lq/bind    ch queue-name topic-name)
+  (lc/subscribe ch queue-name handler :auto-ack true))
+```
 
 It will block the calling thread, so it is usually started in a separate thread. That thread should take care of handling
 I/O exceptions that may arise during the consumer's lifespan.
@@ -256,7 +419,15 @@ The *metadata* parameter in the example above provides access to message metadat
 
 and so on. An example to demonstrate how to access some of those attributes via map destructuring:
 
-{% gist 04cee8313ea0d52037fc %}
+``` clojure
+(defn message-handler
+  [ch {:keys [content-type delivery-tag type] :as meta} ^bytes payload]
+  (println (format "[consumer] Received a message: %s, delivery tag: %d, content type: %s, type: %s"
+                   (String. payload "UTF-8")
+                   delivery-tag
+                   content-type
+                   type)))
+```
 
 The full list of keys (note that most of them are optional and may not be present):
 
@@ -288,7 +459,14 @@ TCP connection to the broker, then the channel is closed and the exclusive consu
 
 To exclusively receive messages from the queue, pass the `:exclusive` option to `langohr.consumers/subscribe`:
 
-{% gist e7d21cbe7873bac008f3 %}
+``` clojure
+(require '[langohr.consumers :as lcm])
+ 
+(lcm/subscribe ch "images.resize"
+               (fn [ch metadata ^bytes payload]
+                 (comment ...))
+               :exclusive true)
+```
 
 If a queue has an exclusive consumer, attempts to register another consumer will fail with an [access refused](http://www.rabbitmq.com/amqp-0-9-1-reference.html#constant.access-refused)
 channel-level exception (code: 403).
@@ -307,7 +485,21 @@ guide). If prefetch values are equal for all consumers, each consumer will get a
 
 To cancel a particular consumer, use the `langohr.basic/cancel` function that takes a channel and a consumer tag to cancel:
 
-{% gist 66a25ef4afdfcbbcb9ac %}
+``` clojure
+(require '[langohr.core      :as rmq])
+(require '[langohr.channel   :as lch])
+(require '[langohr.basic     :as lb])
+(require '[langohr.queue     :as lq])
+(require '[langohr.consumers :as lcons])
+ 
+(let [channel  (lch/open conn)
+      queue    (.getQueue (lq/declare channel))
+      latch    (java.util.concurrent.CountDownLatch. 1)
+      consumer (lcons/create-default channel :handle-delivery-fn (fn [ch metadata ^bytes payload]
+                                                                    (comment ...)))
+      cons-tag (lb/consume channel queue consumer :consumer-tag tag)]
+  (lb/cancel channel tag))
+```
 
 Consumer tag is returned by `langohr.basic/consume` or may be already known to your application.
 
@@ -335,11 +527,100 @@ the broker will wait until at least one consumer is registered for the same queu
 The acknowledgement model is chosen when a new consumer is registered for a queue. By default, `langohr.consumers/subscribe` will use the *explicit* model.
 To switch to the *automatic* model, the `:auto-ack` option should be used:
 
-{% gist 4a03143b1c601ecf692a %}
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+(require '[langohr.queue   :as lq])
+(require '[langohr.consumers :as lcm])
+ 
+(let [conn       (rmq/connect)
+      ch         (lch/open conn)
+      queue-name (format "nba.newsfeeds.%s" username)
+      handler    (fn [ch metadata ^bytes payload]
+                   (println (format "[consumer] Received %s" (String. payload "UTF-8"))))]
+  (lq/declare ch queue-name :exclusive false :auto-delete true)
+  (lq/bind    ch queue-name topic-name)
+  (lc/subscribe ch queue-name handler :auto-ack true))
+```
 
 To demonstrate how redelivery works, let us have a look at the following code example:
 
-{% gist 10396b17bfa343540b35 %}
+``` clojure
+(ns clojurewerkz.langohr.examples.redelivery
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.queue     :as lq]
+            [langohr.exchange  :as le]
+            [langohr.consumers :as lc]
+            [langohr.basic     :as lb])
+  (:import [java.util.concurrent TimeUnit ScheduledThreadPoolExecutor Callable]))
+ 
+(def es (ScheduledThreadPoolExecutor. 4))
+ 
+(defn periodically
+  [n f]
+  (.scheduleWithFixedDelay es ^Runnable f 0 n TimeUnit/MILLISECONDS))
+ 
+(defn after
+  [n f]
+  (.schedule es ^Callable f n TimeUnit/MILLISECONDS))
+ 
+(defn start-acking-consumer
+  [ch queue id]
+  (let [handler (fn [ch {:keys [headers delivery-tag redelivery?]} ^bytes payload]
+                  (println (format "%s received a message, i = %d, redelivery? = %s, acking..." id (get headers "i") redelivery?))
+                  (lb/ack ch delivery-tag))]
+    (.start (Thread. (fn []
+                       (lc/subscribe ch queue handler :auto-ack false))))))
+ 
+(defn start-skipping-consumer
+  [ch queue id]
+  (let [handler (fn [ch {:keys [headers delivery-tag]} ^bytes payload]
+                  (println (format "%s received a message, i = %d" id (get headers "i"))))]
+    (.start (Thread. (fn []
+                       (lc/subscribe ch queue handler :auto-ack false))))))
+ 
+ 
+(defn -main
+  [& args]
+  ;; N connections imitate N apps
+  (let [conn1    (rmq/connect)
+        conn2    (rmq/connect)
+        conn3    (rmq/connect)
+        ch1      (lch/open conn1)
+        ch2      (lch/open conn2)
+        chx      (lch/open conn3)
+        exchange "amq.direct"
+        queue    "langohr.examples.redelivery"]
+    (lb/qos ch1 1)
+    (lb/qos ch2 1)
+    (lq/declare chx queue :auto-delete true :exclusive false)
+    (lq/bind    chx queue exchange :routing-key "key1")
+    ;; this consumer will ack messages
+    (start-acking-consumer   ch1 queue "consumer1")
+    ;; this consumer won't ack messages and will "crash" in 4 seconds
+    (start-skipping-consumer ch2 queue "consumer2")
+    (let [i      (atom 0)
+          future (periodically 800 (fn []
+                                     (try
+                                       (lb/publish chx exchange "key1" "" :headers {"i" @i})
+                                       (swap! i inc)
+                                       (catch Throwable t
+                                         (.printStackTrace t)))))]
+      (after 4000 (fn []
+                    (println "---------------- Shutting down consumer 2 ----------------")
+                    (rmq/close ch2)))
+      (after 8000 (fn []
+                    (println "Shutting down...")
+                     (.shutdownNow es)
+                     (lq/purge chx queue)
+                     (rmq/close ch1)
+                     (rmq/close chx)
+                     (rmq/close conn1)
+                     (rmq/close conn2)
+                     (rmq/close conn3))))))
+```
 
 So what is going on here? This example uses three AMQP connections to imitate three applications, one producer and two consumers.
 Each AMQP connection opens a single channel. The consumers share a queue and the producer publishes messages to the queue periodically using an `amq.direct` exchange.
@@ -354,19 +635,54 @@ closes all outstanding connections and exits.
 
 An extract of output produced by this example:
 
-{% gist 00ea1388dea0c93eb327 %}
+```
+consumer2 received a message, i = 0
+consumer1 received a message, i = 1, redelivery? = false, acking...
+consumer2 received a message, i = 2
+consumer1 received a message, i = 3, redelivery? = false, acking...
+consumer2 received a message, i = 4
+---------------- Shutting down consumer 2 ----------------
+consumer1 received a message, i = 0, redelivery? = true, acking...
+consumer1 received a message, i = 2, redelivery? = true, acking...
+consumer1 received a message, i = 4, redelivery? = true, acking...
+consumer1 received a message, i = 5, redelivery? = false, acking...
+consumer1 received a message, i = 6, redelivery? = false, acking...
+consumer1 received a message, i = 7, redelivery? = false, acking...
+consumer1 received a message, i = 8, redelivery? = false, acking...
+consumer1 received a message, i = 9, redelivery? = false, acking...
+consumer1 received a message, i = 10, redelivery? = false, acking...
+```
 
 As we can see, consumer #1 did not acknowledge three messages (labelled 0, 2 and 4):
 
-{% gist be64738ccb4fffe8d723 %}
+``` clojure
+consumer2 received a message, i = 0
+consumer2 received a message, i = 2
+consumer2 received a message, i = 4
+```
 
-and then, once consumer #1 had "crashed", those messages were immediately redelivered to the consumer #2:
+and then, once consumer #1 had "crashed", those messages were immediately redelivered to the consumer #1:
 
-{% gist 428eeefa8a370c8c939 %}
+```
+---------------- Shutting down consumer 2 ----------------
+consumer1 received a message, i = 0, redelivery? = true, acking...
+consumer1 received a message, i = 2, redelivery? = true, acking...
+consumer1 received a message, i = 4, redelivery? = true, acking...
+consumer1 received a message, i = 5, redelivery? = false, acking...
+consumer1 received a message, i = 6, redelivery? = false, acking...
+consumer1 received a message, i = 7, redelivery? = false, acking...
+consumer1 received a message, i = 8, redelivery? = false, acking...
+consumer1 received a message, i = 9, redelivery? = false, acking...
+consumer1 received a message, i = 10, redelivery? = false, acking...
+```
 
 To acknowledge a message use `langohr.basic/ack`:
 
-{% gist d8a56fef79de681e4470 %}
+``` clojure
+(require '[langohr.basic :as lb])
+ 
+(lb/ack ch delivery-tag)
+```
 
 `langohr.basic/ack` takes three arguments: a channel, a message *delivery tag* and a flag that indicates whether or not we want to acknowledge multiple messages at once.
 Delivery tag is simply a channel-specific increasing number that the server uses to identify deliveries.
@@ -388,12 +704,20 @@ processing has failed (or cannot be accomplished at the time) by rejecting a mes
 
 To reject a message use the `langohr.basic/reject` method:
 
-{% gist b8bd2c7f93b858909de1 %}
+``` clojure
+(require '[langohr.basic :as lb])
+ 
+(lb/reject ch delivery-tag)
+```
 
 in the example above, messages are rejected without requeueing (broker will simply discard them). To requeue a rejected message, use the second argument
 that `langohr.basic/reject` takes:
 
-{% gist ef42e2545e1fde033146 %}
+``` clojure
+(require '[langohr.basic :as lb])
+ 
+(lb/reject ch delivery-tag true)
+```
 
 ### Negative acknowledgements
 
@@ -422,12 +746,31 @@ receives 5000 messages and then acknowledges them all at once. The broker will n
 In AMQP parlance this is know as *QoS* or *message prefetching*. Prefetching is configured on a per-channel (typically) or per-connection (rarely used) basis.
 To configure prefetching per channel, use the `langohr.basic/qos` function. Let us return to the example we used in the "Message acknowledgements" section:
 
-{% gist 062357d99c9b63f1b518 %}
+``` clojure
+(lb/qos ch1 1)
+(lb/qos ch2 1)
+```
 
 In that example, one consumer prefetches three messages and another consumer prefetches just one. If we take a look at the output that the example produces,
 we will see that `consumer1` fetched four messages and acknowledged one. After that, all subsequent messages were delivered to `consumer2`:
 
-{% gist 00ea1388dea0c93eb327 %}
+``` clojure
+consumer2 received a message, i = 0
+consumer1 received a message, i = 1, redelivery? = false, acking...
+consumer2 received a message, i = 2
+consumer1 received a message, i = 3, redelivery? = false, acking...
+consumer2 received a message, i = 4
+---------------- Shutting down consumer 2 ----------------
+consumer1 received a message, i = 0, redelivery? = true, acking...
+consumer1 received a message, i = 2, redelivery? = true, acking...
+consumer1 received a message, i = 4, redelivery? = true, acking...
+consumer1 received a message, i = 5, redelivery? = false, acking...
+consumer1 received a message, i = 6, redelivery? = false, acking...
+consumer1 received a message, i = 7, redelivery? = false, acking...
+consumer1 received a message, i = 8, redelivery? = false, acking...
+consumer1 received a message, i = 9, redelivery? = false, acking...
+consumer1 received a message, i = 10, redelivery? = false, acking...
+```
 
 <span class="alert alert-error">The prefetching setting is ignored for consumers that do not use explicit acknowledgements.</span>
 
@@ -465,11 +808,25 @@ Publisher Confirms RabbitMQ extension.
 The AMQP 0.9.1 specification also provides a way for applications to fetch (pull) messages from the queue only when necessary.
 For that, use the `langohr.basic/get` function which returns a pair of `[metadata payload]`:
 
-{% gist 4acb034a4841023308e2 %}
+``` clojure
+(require '[langohr.basic :as lb])
+ 
+(let [[metadata payload] (lb/get ch "indexing.changes")]
+  (comment ...))
+```
 
 The same example in context:
 
-{% gist acfe1a4cad751f4e2cec %}
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+(require '[langohr.basic   :as lb])
+ 
+(let [conn               (rmq/connect)
+      ch                 (lch/open conn)
+      [metadata payload] (lb/get ch "indexing.changes")]
+  (comment ...))
+```
 
 The metadata map has the same keys as for delivery handlers (see the "Push API" section above).
 
@@ -479,7 +836,11 @@ If the queue is empty, then `nil` will be returned.
 
 Sometimes it is necessary to unsubscribe from messages without deleting a queue. To do so, use the `langohr.basic/cancel` function:
 
-{% gist 6e4e8694938636bcb315 %}
+``` clojure
+(require '[langohr.basic :as lb])
+ 
+(lb/cancel channel consumer-tag)
+```
 
 The consumer tag is either known to your application ahead of time or generated by the broker and returned by `langohr.basic/consume`.
 
@@ -494,7 +855,10 @@ Fetching messages with `langohr.basic/get` is still possible even after a consum
 
 To unbind a queue from an exchange use the `langohr.queue/unbind` function:
 
-{% gist https://gist.github.com/96c1c4752349244fb59d %}
+``` clojure
+(require '[langohr.basic :as lb])
+(lq/unbind channel queue "amq.topic" "streams.twitter.#")
+```
 
 Note that trying to unbind a queue from an exchange that the queue was never bound to will
 result in a channel-level exception.
@@ -506,20 +870,34 @@ with the `:passive` attribute set.
 The response (`queue.declare-ok` AMQP method) will include the number of messages along with
 other attributes. However, Langohr provides a convenience function `langohr.queue/status`:
 
-{% gist 7703ef627a4234b2cabe %}
+``` clojure
+(require '[langohr.queue :as lq])
+ 
+(let [{:keys [message-count]} (lq/status ch "search.indexer")]
+  message-count)
+```
 
 ## Querying the Number of Consumers On a Queue
 
 It is possible to query the number of consumers on a queue by declaring the queue with the ":passive" attribute set. The response (`queue.declare-ok` AMQP method)
 will include the number of consumers along with other attributes. However, Langohr provides a convenience function `langohr.queue/status`:
 
-{% gist adb53fc1201630a5199c %}
+``` clojure
+(require '[langohr.queue :as lq])
+ 
+(let [{:keys [consumer-count]} (lq/status ch "search.indexer")]
+  consumer-count)
+```
 
 ## Purging queues
 
 It is possible to purge a queue (remove all of the messages from it) using the `langohr.queues/purge` function:
 
-{% gist be4b2501a72874e6d214 %}
+``` clojure
+(require '[langohr.queue :as lq])
+ 
+(lb/purge channel "events.recent")
+```
 
 Note that this example purges a newly declared queue with a unique server-generated name. When a queue is declared,
 it is empty, so for server-named queues, there is no need to purge them before they are used.
@@ -528,7 +906,11 @@ it is empty, so for server-named queues, there is no need to purge them before t
 
 To delete a queue, use the `langohr.queue/delete` function:
 
-{% gist dd6a06ac1e50e4c142eb %}
+``` clojure
+(require '[langohr.queue :as lq])
+ 
+(lb/delete channel "events.summery.22.09.2012")
+```
 
 When a queue is deleted, all of the messages in it are deleted as well.
 

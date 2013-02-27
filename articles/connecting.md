@@ -13,7 +13,7 @@ This work is licensed under a <a rel="license" href="http://creativecommons.org/
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.0-beta11.
+This guide covers Langohr 1.0-beta12.
 
 
 
@@ -39,7 +39,15 @@ Map options that Langohr will recognize are
 
 To connect to RabbitMQ with a map of parameters, use the `langohr.core/connect` function:
 
-{% gist e7405705d5b1b7c50ecf %}
+``` clojure
+(require '[langohr.core :as rmq])
+ 
+;; connect with all defaults
+(rmq/connect)
+ 
+;; connect with the given settings
+(rmq/connect {:host "messaging.dev.megacorp.internal" :username "joe" :password "t0ps3krEt"})
+```
 
 The function returns a connection instance that is used to open channels. More about channels later in this guide.
 
@@ -48,14 +56,20 @@ The function returns a connection instance that is used to open channels. More a
 
 Default connection parameters are
 
-{% gist cf84d6455c018afc7448 %}
+``` clojure
+{:host "localhost" :port 5672 :username "guest" :password "guest" :vhost "/"}
+```
 
 
 ### Using Connection Strings
 
 It is also possible to specify connection parameters as a URI string using the `:uri` option:
 
-{% gist 807bf5c216f33df24614 %}
+``` clojure
+(require '[langohr.core :as rmq])
+ 
+(rmq/connect {:uri "amqp://username:password@broker.megacorp.internal:5672/development"})
+```
 
 
 Unfortunately, there is no URI standard for AMQP URIs, so while several schemes used in the wild share the same basic idea, they differ in some details.
@@ -111,7 +125,15 @@ be thought of as "lightweight connections that share a single TCP connection".
 
 To open a channel, use the `langohr.channel/open` function that takes a connection:
 
-{% gist a47b53cc03cf4bad8573 %}
+``` clojure
+(require '[langohr.core    :as rmq])
+(require '[langohr.channel :as lch])
+ 
+ 
+(let [conn (rmq/connect)
+      ch   (lch/open conn)]
+  ch)
+```
 
 Channels are typically long lived: you open one or more of them and use them for a period of time, as opposed to opening
 a new channel for each published message, for example.
