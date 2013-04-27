@@ -88,21 +88,30 @@ Langohr artifacts are [released to Clojars](https://clojars.org/com.novemberain/
 
 ### With Leiningen
 
-    [com.novemberain/langohr "1.0.0-beta12"]
+``` clojure
+[com.novemberain/langohr "1.0.0-beta13"]
+```
 
 ### With Maven
 
 Add Clojars repository definition to your `pom.xml`:
 
-{% gist 65642c4b53d26539e5f6 %}
+``` xml
+<repository>
+  <id>clojars.org</id>
+  <url>http://clojars.org/repo</url>
+</repository>
+```
 
 And then the dependency:
 
-    <dependency>
-      <groupId>com.novemberain</groupId>
-      <artifactId>langohr</artifactId>
-      <version>1.0.0.-beta12</version>
-    </dependency>
+``` xml
+<dependency>
+  <groupId>com.novemberain</groupId>
+  <artifactId>langohr</artifactId>
+  <version>1.0.0.-beta12</version>
+</dependency>
+```
 
 ### Verifying Your Installation
 
