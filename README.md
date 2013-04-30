@@ -12,18 +12,17 @@ With Bundler:
 
 ## How to run a development server
 
-    ./bin/jekyll --auto --server
+    ./bin/jekyll serve --watch
 
+then navigate to [localhost:4000](http://localhost:4000)
 
 ## How to regenerate the site
 
-In order to modify contents and launch dev environment, run:
-
-    ./bin/jekyll
+      ./bin/jekyll build
 
 
 ## License & Copyright
 
-Copyright (C) 2011-2012 Alexander Petrov, Michael S. Klishin.
+Copyright (C) 2011-2013 Alexander Petrov, Michael S. Klishin.
 
 Distributed under the Eclipse Public License, the same as Clojure.
