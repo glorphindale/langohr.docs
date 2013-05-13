@@ -30,7 +30,7 @@ This guide covers:
 
 
 
-### [Conneciting To The Broker](/articles/connecting.html)
+### [Connecting To The Broker](/articles/connecting.html)
 
 This guide covers:
 
