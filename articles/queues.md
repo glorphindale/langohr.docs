@@ -373,12 +373,12 @@ it returns the consumer tag.
 The `langohr.consumers/subscribe` function starts a consumer that loops and processes messages forever:
 
 ``` clojure
-(require '[langohr.consumers :as lcm])
+(require '[langohr.consumers :as lcons])
  
-(lcm/subscribe ch "images.resize"
-               (fn [ch metadata ^bytes payload]
-                 (println (format "[consumer] %s received %s" username (String. payload "UTF-8"))))
-               :auto-ack true)
+(lcons/subscribe ch "images.resize"
+                 (fn [ch metadata ^bytes payload]
+                   (println (format "[consumer] %s received %s" username (String. payload "UTF-8"))))
+                 :auto-ack true)
 ```
 
 The same example in context:
@@ -387,7 +387,7 @@ The same example in context:
 (require '[langohr.core    :as rmq])
 (require '[langohr.channel :as lch])
 (require '[langohr.queue   :as lq])
-(require '[langohr.consumers :as lcm])
+(require '[langohr.consumers :as lcons])
  
 (let [conn       (rmq/connect)
       ch         (lch/open conn)
@@ -396,7 +396,7 @@ The same example in context:
                    (println (format "[consumer] Received %s" (String. payload "UTF-8"))))]
   (lq/declare ch queue-name :exclusive false :auto-delete true)
   (lq/bind    ch queue-name topic-name)
-  (lc/subscribe ch queue-name handler :auto-ack true))
+  (lcons/subscribe ch queue-name handler :auto-ack true))
 ```
 
 It will block the calling thread, so it is usually started in a separate thread. That thread should take care of handling
@@ -460,12 +460,12 @@ TCP connection to the broker, then the channel is closed and the exclusive consu
 To exclusively receive messages from the queue, pass the `:exclusive` option to `langohr.consumers/subscribe`:
 
 ``` clojure
-(require '[langohr.consumers :as lcm])
+(require '[langohr.consumers :as lcons])
  
-(lcm/subscribe ch "images.resize"
-               (fn [ch metadata ^bytes payload]
-                 (comment ...))
-               :exclusive true)
+(lcons/subscribe ch "images.resize"
+                 (fn [ch metadata ^bytes payload]
+                   (comment ...))
+                 :exclusive true)
 ```
 
 If a queue has an exclusive consumer, attempts to register another consumer will fail with an [access refused](http://www.rabbitmq.com/amqp-0-9-1-reference.html#constant.access-refused)
@@ -531,7 +531,7 @@ To switch to the *automatic* model, the `:auto-ack` option should be used:
 (require '[langohr.core    :as rmq])
 (require '[langohr.channel :as lch])
 (require '[langohr.queue   :as lq])
-(require '[langohr.consumers :as lcm])
+(require '[langohr.consumers :as lcons])
  
 (let [conn       (rmq/connect)
       ch         (lch/open conn)
@@ -540,7 +540,7 @@ To switch to the *automatic* model, the `:auto-ack` option should be used:
                    (println (format "[consumer] Received %s" (String. payload "UTF-8"))))]
   (lq/declare ch queue-name :exclusive false :auto-delete true)
   (lq/bind    ch queue-name topic-name)
-  (lc/subscribe ch queue-name handler :auto-ack true))
+  (lcons/subscribe ch queue-name handler :auto-ack true))
 ```
 
 To demonstrate how redelivery works, let us have a look at the following code example:
@@ -552,7 +552,7 @@ To demonstrate how redelivery works, let us have a look at the following code ex
             [langohr.channel   :as lch]
             [langohr.queue     :as lq]
             [langohr.exchange  :as le]
-            [langohr.consumers :as lc]
+            [langohr.consumers :as lcons]
             [langohr.basic     :as lb])
   (:import [java.util.concurrent TimeUnit ScheduledThreadPoolExecutor Callable]))
  
@@ -572,14 +572,14 @@ To demonstrate how redelivery works, let us have a look at the following code ex
                   (println (format "%s received a message, i = %d, redelivery? = %s, acking..." id (get headers "i") redelivery?))
                   (lb/ack ch delivery-tag))]
     (.start (Thread. (fn []
-                       (lc/subscribe ch queue handler :auto-ack false))))))
+                       (lcons/subscribe ch queue handler :auto-ack false))))))
  
 (defn start-skipping-consumer
   [ch queue id]
   (let [handler (fn [ch {:keys [headers delivery-tag]} ^bytes payload]
                   (println (format "%s received a message, i = %d" id (get headers "i"))))]
     (.start (Thread. (fn []
-                       (lc/subscribe ch queue handler :auto-ack false))))))
+                       (lcons/subscribe ch queue handler :auto-ack false))))))
  
  
 (defn -main
