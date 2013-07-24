@@ -145,13 +145,6 @@ Let us begin with the classic "Hello, world" example. First, here is the code:
   (println (format "[consumer] Received a message: %s, delivery tag: %d, content type: %s, type: %s"
                    (String. payload "UTF-8") delivery-tag content-type type)))
 
-(defn start-consumer
-  "Starts a consumer in a separate thread"
-  [conn ch queue-name]
-  (let [thread (Thread. (fn []
-                          (lc/subscribe ch queue-name message-handler :auto-ack true)))]
-    (.start thread)))
-
 (defn -main
   [& args]
   (let [conn  (rmq/connect)
@@ -159,7 +152,7 @@ Let us begin with the classic "Hello, world" example. First, here is the code:
         qname "langohr.examples.hello-world"]
     (println (format "[main] Connected. Channel id: %d" (.getChannelNumber ch)))
     (lq/declare ch qname :exclusive false :auto-delete true)
-    (start-consumer conn ch qname)
+    (lc/subscribe ch queue-name message-handler :auto-ack true)
     (lb/publish ch default-exchange-name qname "Hello!" :content-type "text/plain" :type "greetings.hi")
     (Thread/sleep 2000)
     (println "[main] Disconnecting...")
@@ -190,21 +183,7 @@ defines our example app namespace that requires (loads) several Langohr namespac
 
 and will be compiled ahead-of-time (so we can run it).
 
-Clojure applications are compiled to JVM bytecode. The `-main` function is the entry point:
-
-``` clojure
-(let [conn  (rmq/connect)
-      ch    (lch/open conn)
-      qname "langohr.examples.hello-world"]
-  (println (format "[main] Connected. Channel id: %d" (.getChannelNumber ch)))
-  (lq/declare ch qname :exclusive false :auto-delete true)
-  (start-consumer conn ch qname)
-  (lb/publish ch default-exchange-name qname "Hello!" :content-type "text/plain" :type "greetings.hi")
-  (Thread/sleep 2000)
-  (println "[main] Disconnecting...")
-  (rmq/close ch)
-  (rmq/close conn))
-```
+Clojure applications are compiled to JVM bytecode. The `-main` function is the entry point.
 
 A few things is going on here:
 
@@ -254,20 +233,10 @@ and "non-exclusive" parameters. Basically, this means that the queue will be del
 Now that we have a queue, we can start consuming messages from it:
 
 ``` clojure
-(start-consumer conn ch qname)
+(lc/subscribe ch queue-name message-handler :auto-ack true)
 ```
 
-We use `langohr.queue/subscribe` to start a blocking consumer. Because the consumer will loop waiting for messages forever, we start it
-in a separate thread:
-
-``` clojure
-(defn start-consumer
-  "Starts a consumer in a separate thread"
-  [conn ch queue-name]
-  (let [thread (Thread. (fn []
-                          (lc/subscribe ch queue-name message-handler :auto-ack true)))]
-    (.start thread)))
-```
+We use `langohr.queue/subscribe` to start a consumer. This creates a new thread which will consume the messages.
 
 Finally, here's the handling function:
 
@@ -279,7 +248,7 @@ Finally, here's the handling function:
 ```
 
 It takes a channel the consumer uses, a Clojure map of message metadata and message payload as array of bytes. We turn it into a string
-and printit, as well as a few message properties.
+and print it, as well as a few message properties.
 
 ### Publish a Message
 
@@ -331,7 +300,7 @@ to get updates about what is happening in the world of basketball. Here is the c
             [langohr.exchange  :as le]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]))
- 
+
 (defn start-consumer
   "Starts a consumer bound to the given topic exchange in a separate thread"
   [ch topic-name username]
@@ -340,9 +309,8 @@ to get updates about what is happening in the world of basketball. Here is the c
                      (println (format "[consumer] %s received %s" username (String. payload "UTF-8"))))]
     (lq/declare ch queue-name :exclusive false :auto-delete true)
     (lq/bind    ch queue-name topic-name)
-    (.start (Thread. (fn []
-                       (lc/subscribe ch queue-name handler :auto-ack true))))))
- 
+    (lc/subscribe ch queue-name handler :auto-ack true)))
+
 (defn -main
   [& args]
   (let [conn  (rmq/connect)
@@ -423,10 +391,10 @@ Here is the code:
             [langohr.exchange  :as le]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]))
- 
+
 (def ^{:const true}
   weather-exchange "weathr")
- 
+
 (defn start-consumer
   "Starts a consumer bound to the given topic exchange in a separate thread"
   [ch topic-name queue-name]
@@ -434,14 +402,13 @@ Here is the code:
         handler     (fn [ch {:keys [routing-key] :as meta} ^bytes payload]
                       (println (format "[consumer] Consumed '%s' from %s, routing key: %s" (String. payload "UTF-8") queue-name' routing-key)))]
     (lq/bind    ch queue-name' weather-exchange :routing-key topic-name)
-    (.start (Thread. (fn []
-                       (lc/subscribe ch queue-name' handler :auto-ack true))))))
- 
+    (lc/subscribe ch queue-name' handler :auto-ack true)))
+
 (defn publish-update
   "Publishes a weather update"
   [ch payload routing-key]
   (lb/publish ch weather-exchange routing-key payload :content-type "text/plain" :type "weather.update"))
- 
+
 (defn -main
   [& args]
   (let [conn      (rmq/connect)
