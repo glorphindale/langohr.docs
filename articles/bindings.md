@@ -13,7 +13,7 @@ This work is licensed under a <a rel="license" href="http://creativecommons.org/
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.1.
+This guide covers Langohr 1.3.
 
 
 ## Bindings In AMQP 0.9.1
