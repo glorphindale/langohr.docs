@@ -152,7 +152,7 @@ Let us begin with the classic "Hello, world" example. First, here is the code:
         qname "langohr.examples.hello-world"]
     (println (format "[main] Connected. Channel id: %d" (.getChannelNumber ch)))
     (lq/declare ch qname :exclusive false :auto-delete true)
-    (lc/subscribe ch queue-name message-handler :auto-ack true)
+    (lc/subscribe ch qname message-handler :auto-ack true)
     (lb/publish ch default-exchange-name qname "Hello!" :content-type "text/plain" :type "greetings.hi")
     (Thread/sleep 2000)
     (println "[main] Disconnecting...")
@@ -189,7 +189,7 @@ A few things is going on here:
 
  * We connect to RabbitMQ using `langohr.core/connect`. We pass no arguments so connection parameters are all defaults.
  * We open a new channel. Channels is a way to have multiple logical "connections" per AMQP connection.
- * We declare an exchange with the name `"langohr.examples.hello-world"`
+ * We declare a queue with the name `"langohr.examples.hello-world"`
  * We start consuming messages from it
  * We publish a message, wait for 2 seconds and disconnect
 
@@ -319,7 +319,7 @@ to get updates about what is happening in the world of basketball. Here is the c
         users ["joe" "aaron" "bob"]]
     (le/declare ch ex "fanout" :durable false :auto-delete true)
     (doseq [u users]
-      (start-consumer ch "nba.scores" u))
+      (start-consumer ch ex u))
     (lb/publish ch ex "" "BOS 101, NYK 89" :content-type "text/plain" :type "scores.update")
     (lb/publish ch ex "" "ORL 85, ALT 88"  :content-type "text/plain" :type "scores.update")
     (Thread/sleep 2000)
@@ -342,11 +342,12 @@ case of Blabbr.
 This piece of code
 
 ``` clojure
-(let [conn  (rmq/connect)
-      ch    (lch/open conn)
-      ex    "nba.scores"]
-  (le/declare ch ex "fanout" :durable false :auto-delete true))
-```
+(let [queue-name (format "nba.newsfeeds.%s" username)
+      handler    (fn [ch {:keys [content-type delivery-tag type] :as meta} ^bytes payload]
+                   (println (format "[consumer] %s received %s" username (String. payload "UTF-8"))))]
+  (lq/declare ch queue-name :exclusive false :auto-delete true)
+  (lq/bind    ch queue-name topic-name)
+  (lc/subscribe ch queue-name handler :auto-ack true))```
 
 is similar to the subscription code that we used for message delivery previously, but also does a bit more: it sets up a binding between the queue and the exchange
 that was declared earlier. We need to do this to make sure that our fanout exchange routes messages to the queues of all subscribed followers.
