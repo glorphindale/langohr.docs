@@ -159,6 +159,62 @@ See also rabbitmq.com section on [Per-queue Message TTL](http://www.rabbitmq.com
 
 
 
+## Sender-Selected Distribution
+
+Generally, the RabbitMQ model assumes that the broker will do the routing work. At times, however, it is useful
+for routing to happen in the publisher application. Sender-Selected Routing is a RabbitMQ feature
+that lets clients have extra control over routing.
+
+The values associated with the `"CC"` and `"BCC"` header keys will be added to the routing key if they are present.
+If neither of those headers is present, this extension has no effect.
+
+### How To Use It With Bunny 0.9+
+
+To use sender-selected distribution, set the `"CC"` and `"BCC"` headers like you would any other header:
+
+``` clojure
+(lb/publish ch ex routing-key "a message" :headers {"CC" ["two" "three"]})
+```
+
+### Example
+
+``` clojure
+(ns clojurewerkz.langohr.examples.sender-selected-distribution
+  (:gen-class)
+  (:require [langohr.core    :as rmq]
+            [langohr.channel :as lch]
+            [langohr.queue   :as lq]
+            [langohr.basic   :as lb]))
+
+(def ^{:const true}
+  default-exchange-name "")
+
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        q1    "clojurewerkz.langohr.examples.sender-selected-distribution1"
+        q2    "clojurewerkz.langohr.examples.sender-selected-distribution2"
+        q3    "clojurewerkz.langohr.examples.sender-selected-distribution3"]
+    (lq/declare ch q1 :durable false)
+    (lq/declare ch q2 :durable false)
+    (lq/declare ch q3 :durable false)
+    (lb/publish ch default-exchange-name "won't-route-anywhere" "a message" :headers {"CC" [q2 q3]})
+    (Thread/sleep 50)
+    (println (format "Queue %s has %d messages" q1 (lq/message-count ch q1)))
+    (println (format "Queue %s has %d messages" q2 (lq/message-count ch q2)))
+    (println (format "Queue %s has %d messages" q3 (lq/message-count ch q3)))
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
+
+### Learn More
+
+See also rabbitmq.com section on [Sender-Selected Distribution](http://www.rabbitmq.com/sender-selected.html)
+
+
+
 
 ## Wrapping Up
 
