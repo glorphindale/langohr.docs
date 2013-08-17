@@ -111,7 +111,7 @@ This guide covers:
 
 
 
-### [RabbitMQ Extensions to AMQP 0.9.1](/articles/rabbitmq_extensions.html) (TBD)
+### [RabbitMQ Extensions to AMQP 0.9.1](/articles/extensions.html)
 
 This guide covers [RabbitMQ extensions](http://www.rabbitmq.com/extensions.html) and how they are used in Langohr:
 
