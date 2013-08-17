@@ -216,6 +216,68 @@ See also rabbitmq.com section on [Sender-Selected Distribution](http://www.rabbi
 
 
 
+## Dead Letter Exchange (DLX)
+
+The x-dead-letter-exchange argument to queue.declare controls the exchange to which messages from that queue are 'dead-lettered'.
+A message is dead-lettered when any of the following events occur:
+
+The message is rejected (basic.reject or basic.nack) with requeue=false; or the TTL for the message expires.
+
+### How To Use It With Langohr
+
+Dead-letter Exchange is a feature that is used by specifying additional queue arguments:
+
+ * `"x-dead-letter-exchange"` specifies the exchange that dead lettered messages should be published to by RabbitMQ
+ * `"x-dead-letter-routing-key"` specifies the routing key that should be used (has to be a constant value)
+
+``` clojure
+(lq/declare ch "a-queue" :arguments {"x-dead-letter-exchange" dlx})
+```
+
+### Example
+
+``` clojure
+(ns clojurewerkz.langohr.examples.dead-letter-exchange
+  (:gen-class)
+  (:require [langohr.core     :as rmq]
+            [langohr.channel  :as lch]
+            [langohr.queue    :as lq]
+            [langohr.exchange :as lx]
+            [langohr.basic    :as lb]))
+
+(def ^{:const true}
+  default-exchange-name "")
+
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        q1    "clojurewerkz.langohr.examples.dlx.q1"
+        q2    "clojurewerkz.langohr.examples.dlx.q2"
+        dlx   "clojurewerkz.langohr.examples.dlx"]
+    (lq/declare ch q1 :durable false :arguments {"x-dead-letter-exchange" dlx
+                                                 "x-message-ttl" 300})
+    (lq/declare ch q2 :durable false)
+    (lx/fanout ch dlx :durable false)
+    (lq/bind ch q2 dlx)
+    (lb/publish ch default-exchange-name q1 "a message")
+    ;; expired messages are dead lettered
+    (Thread/sleep 450)
+    (println (format "Queue %s has %d messages" q1 (lq/message-count ch q1)))
+    (println (format "Queue %s has %d messages" q2 (lq/message-count ch q2)))
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
+
+### Learn More
+
+See also rabbitmq.com section on [Dead Letter Exchange](http://www.rabbitmq.com/dlx.html)
+
+
+
+
+
 ## Wrapping Up
 
 TBD
