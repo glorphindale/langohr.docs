@@ -20,12 +20,12 @@ This work is licensed under a <a rel="license" href="http://creativecommons.org/
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.3.
+This guide covers Langohr 1.4.x.
 
 
 ## Supported Clojure Versions
 
-Langohr was built from the ground up for Clojure 1.3+. The latest stable release is recommended.
+Langohr requires Clojure 1.3+. The latest stable release is recommended.
 
 
 ## Supported RabbitMQ Versions
