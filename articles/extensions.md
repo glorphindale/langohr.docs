@@ -30,6 +30,70 @@ This work is licensed under a <a rel="license" href="http://creativecommons.org/
 This guide covers Langohr 1.4.x.
 
 
+
+## Queue Leases
+
+Queue Leases is a RabbitMQ feature that lets you set for how long a
+queue is allowed to be *unused*. After that moment, it will be
+deleted. *Unused* here means that the queue
+
+ * has no consumers
+ * is not redeclared
+ * no message fetches happened (using `basic.get` AMQP 0.9.1 method, that is, `langohr.basic/get` in Langohr)
+
+### How To Use It With Langohr
+
+Use the `"x-expires"` optional queue argument to set how long the
+queue will be allowed to be unused in milliseconds. After that time,
+the queue will be removed by RabbitMQ.
+
+``` clojure
+(ns langohr.examples
+  (:require [langohr.queue :as lq]))
+
+# 500 milliseconds
+(lq/declare ch "a.queue" :arguments {"x-expires" 500})
+```
+
+### Example
+
+``` clojure
+(ns clojurewerkz.langohr.examples.queue-ttl
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.queue     :as lq]
+            [langohr.shutdown  :as lsh]))
+
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        qname "clojurewerkz.langohr.examples.queue-ttl"]
+    (lq/declare ch qname :arguments {"x-expires" 500})
+    (Thread/sleep 600)
+    (try
+      (lq/declare-passive ch qname)
+      (catch java.io.IOException ioe
+          (let [shutdown-ex (.getCause ioe)
+                code        (-> (lsh/reason-of shutdown-ex)
+                                .getMethod
+                                .getReplyCode)]
+            (when (= code 404)
+              (println "Queue no longer exists")))))
+    (println "[main] Disconnecting...")
+    (when (rmq/open? ch)
+      (rmq/close ch))
+    (rmq/close conn)))
+```
+
+### Learn More
+
+See also rabbitmq.com section on [Queue Leases](http://www.rabbitmq.com/ttl.html#queue-ttl)
+
+
+
+
 ## Per-queue Message Time-to-Live
 
 Per-queue Message Time-to-Live (TTL) is a RabbitMQ extension to AMQP 0.9.1 that allows developers to control how long
