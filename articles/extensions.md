@@ -141,11 +141,14 @@ See also rabbitmq.com section on [Queue Leases](http://www.rabbitmq.com/ttl.html
 
 ## Consumer Cancellation Notifications
 
-### How To Use It With Bunny 0.9+
+### How To Use It With Langohr
 
-In order to use consumer cancellation notifications, you need to use consumer objects (documented in the [Queues and Consumers guide](/articles/queues.html)).
-When a consumer is cancelled, the `#handle_cancellation` method will be called on it. To register a consumer that is an object
-and not just message handler block, use `Bunny::Queue#subscribe_with` instead of `Bunny::Queue#subscribe`:
+In order to use consumer cancellation notifications, you need to use
+consumer objects (documented in the [Queues and Consumers
+guide](/articles/queues.html)).  When a consumer is cancelled, an
+event handler will be executed.  To register such a callback, use
+`:handle-cancel-fn` when registering a consumer with
+`langohr.consumers/subscribe` and similar functions:
 
 ``` clojure
 (ns langohr.examples
