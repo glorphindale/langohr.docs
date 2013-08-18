@@ -31,6 +31,52 @@ This guide covers Langohr 1.4.x.
 
 
 
+
+## Publisher Confirms (Publisher Acknowledgements)
+
+In some situations it is essential that messages are reliably delivered to the RabbitMQ broker and not lost on the way. The only reliable ways of assuring message delivery are by using publisher confirms or [transactions](http://www.rabbitmq.com/semantics.html).
+
+The [Publisher Confirms AMQP extension](http://www.rabbitmq.com/blog/2011/02/10/introducing-publisher-confirms/) was designed to solve the reliable publishing problem in a more lightweight way compared to transactions.
+
+Publisher confirms are similar to message acknowledgements (documented in the [Queues and Consumers](/articles/queues/) guide), but involve
+a publisher and a RabbitMQ node instead of a consumer and a RabbitMQ node.
+
+![RabbitMQ Message Acknowledgements](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/006_amqp_091_message_acknowledgements.png)
+
+![RabbitMQ Publisher Confirms](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/007_rabbitmq_publisher_confirms.png)
+
+### How To Use It With Bunny 0.9+
+
+To use publisher confirms, first put the channel into confirmation mode using the `Bunny::Channel#confirm_select` method:
+
+```
+channel.confirm_select
+```
+
+From this moment on, every message published on this channel will cause the channel's _publisher index_ (message counter) to be incremented.
+It is possible to access the index using `Bunny::Channel#next_publish_seq_no` method. To check whether the channel is in confirmation mode,
+use the `Bunny::Channel#using_publisher_confirmations?` method:
+
+``` ruby
+
+```
+
+### Example
+
+``` ruby
+
+```
+
+In the example above, the `Bunny::Channel#wait_for_confirms` method blocks (waits) until all of the published messages are confirmed by the RabbitMQ broker. **Note** that a message may be nacked by the broker if, for some reason, it cannot take responsibility for the message. In that case, the `wait_for_confirms` method will return `false` and there is also a Ruby `Set` of nacked message IDs (`channel.nacked_set`) that can be inspected and dealt with as required.
+
+### Learn More
+
+See also rabbitmq.com section on [Publisher Confirms](http://www.rabbitmq.com/confirms.html)
+
+
+
+
+
 ## Queue Leases
 
 Queue Leases is a RabbitMQ feature that lets you set for how long a
@@ -274,6 +320,62 @@ Dead-letter Exchange is a feature that is used by specifying additional queue ar
 
 See also rabbitmq.com section on [Dead Letter Exchange](http://www.rabbitmq.com/dlx.html)
 
+
+## Exchange-To-Exchange Bindings
+
+RabbitMQ supports [exchange-to-exchange
+bindings](http://www.rabbitmq.com/e2e.html) to allow even richer
+routing topologies as well as a backbone for some other features
+(e.g. tracing).
+
+### How To Use It With Langohr
+
+Langohr exposes it via `langohr.exchange/bind` which is semantically
+the same as `langohr.queue/bind` but binds two exchanges:
+
+``` clojure
+(ns my.example
+  (:require [langohr.exchange :as lx]))
+
+;; x1 is the source, x2 is the destination,
+;; the same argument order as in langohr.queue/bind
+(lx/bind ch x2 x1 :routing-key "unsorted")
+```
+
+### Example
+
+``` clojure
+(ns clojurewerkz.langohr.examples.exchange-to-exchange-bindings
+  (:gen-class)
+  (:require [langohr.core     :as rmq]
+            [langohr.channel  :as lch]
+            [langohr.queue    :as lq]
+            [langohr.exchange :as lx]
+            [langohr.basic    :as lb]))
+
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        x1    "clojurewerkz.langohr.examples.dlx.x1"
+        x2    "clojurewerkz.langohr.examples.dlx.x2"
+        qname "clojurewerkz.langohr.examples.dlx.q"]
+    (lx/direct ch x1 :durable false)
+    (lx/fanout ch x2 :durable false)
+    (lq/declare ch qname :exclusive true)
+    (lq/bind ch qname x2)
+    (lx/bind ch x2 x1 :routing-key "unsorted")
+    (lb/publish ch x1 "unsorted" "a message")
+    (Thread/sleep 50)
+    (println (format "Queue %s has %d message(s)" qname (lq/message-count ch qname)))
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
+
+### Learn More
+
+See also rabbitmq.com section on [Exchange-to-Exchange Bindings](http://www.rabbitmq.com/e2e.html)
 
 
 
