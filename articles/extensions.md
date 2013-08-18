@@ -205,6 +205,137 @@ See also rabbitmq.com section on [Per-queue Message TTL](http://www.rabbitmq.com
 
 
 
+## basic.nack
+
+The AMQP 0.9.1 specification defines the basic.reject method that
+allows clients to reject individual, delivered messages, instructing
+the broker to either discard them or requeue them. Unfortunately,
+basic.reject provides no support for negatively acknowledging messages
+in bulk.
+
+To solve this, RabbitMQ supports the `basic.nack` method that provides
+all of the functionality of basic.reject whilst also allowing for bulk
+processing of messages.
+
+### How To Use It With Langohr
+
+Langohr exposes `basic.nack` via the `langohr.basic/nack` function,
+similar to `langohr.basic/ack` and `langohr.basic/reject`:
+
+``` clojure
+(ns langohr.examples
+  (:require [langohr.basic :as lb]))
+
+# requeue multiple messages at once
+(lb/nack ch delivery-tag true true)
+
+# requeue a single message at once
+(lb/nack ch delivery-tag false true)
+```
+
+### Example
+
+``` clojure
+(ns clojurewerkz.langohr.examples.basic-nack
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.queue     :as lq]
+            [langohr.basic     :as lb]
+            [langohr.consumers :as lcons]))
+
+(defn consumer1-fn
+  [ch {:keys [delivery-tag]} ^bytes payload]
+  (when (>= delivery-tag 29)
+    (println "Requeueing all previously received messages...")
+    (lb/nack ch delivery-tag true true)))
+
+(defn consumer2-fn
+  [ch {:keys [delivery-tag]} ^bytes payload]
+  (println (format "Consumer 2 got delivery: %d" delivery-tag))
+  (lb/ack ch delivery-tag))
+
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        qname (:queue (lq/declare ch "clojurewerkz.langohr.examples.basic-nack.q" :exclusive true))]
+    (lcons/subscribe ch qname consumer1-fn)
+    (lcons/subscribe ch qname consumer2-fn)
+    (dotimes [n 30]
+      (lb/publish ch "" qname "a message"))
+    (Thread/sleep 200)
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
+
+### Learn More
+
+See also rabbitmq.com section on [basic.nack](http://www.rabbitmq.com/nack.html)
+
+
+
+
+
+## Alternate Exchanges
+
+The Alternate Exchanges RabbitMQ extension to AMQP 0.9.1 allows developers to define "fallback" exchanges
+where unroutable messages will be sent.
+
+### How To Use It With Langohr
+
+To specify exchange A as an alternate exchange to exchange B, specify the 'alternate-exchange' argument on declaration of B:
+
+``` clojure
+(ns langohr.examples
+  (:require [langohr.exchange :as lx]))
+
+(lx/fanout ch x2
+              :durable false
+              :arguments {"alternate-exchange" x1})
+```
+
+### Example
+
+``` clojure
+(ns clojurewerkz.langohr.examples.alternate-exchange
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.queue     :as lq]
+            [langohr.exchange  :as lx]
+            [langohr.basic     :as lb]))
+
+(defn -main
+  [& args]
+  (let [conn (rmq/connect)
+        ch   (lch/open conn)
+        x1   "clojurewerkz.langohr.examples.alternate-exchange.x1"
+        x2   "clojurewerkz.langohr.examples.alternate-exchange.x2"
+        q    (lq/declare-server-named ch)]
+    (lx/fanout ch x1 :durable false)
+    (lx/fanout ch x2
+               :durable false
+               :arguments {"alternate-exchange" x1})
+    (lq/bind ch q x1)
+    (lb/publish ch x2 "_" "a message")
+    (Thread/sleep 50)
+    (println (format "Queue %s has %d message(s)" q (lq/message-count ch q)))
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
+
+### Learn More
+
+See also rabbitmq.com section on [Alternate Exchanges](http://www.rabbitmq.com/ae.html)
+
+
+
+
+
+
 ## Sender-Selected Distribution
 
 Generally, the RabbitMQ model assumes that the broker will do the routing work. At times, however, it is useful
