@@ -139,6 +139,65 @@ See also rabbitmq.com section on [Queue Leases](http://www.rabbitmq.com/ttl.html
 
 
 
+## Consumer Cancellation Notifications
+
+### How To Use It With Bunny 0.9+
+
+In order to use consumer cancellation notifications, you need to use consumer objects (documented in the [Queues and Consumers guide](/articles/queues.html)).
+When a consumer is cancelled, the `#handle_cancellation` method will be called on it. To register a consumer that is an object
+and not just message handler block, use `Bunny::Queue#subscribe_with` instead of `Bunny::Queue#subscribe`:
+
+``` clojure
+(ns langohr.examples
+  (:require [langohr.consumers :as lcons]))
+
+(lcons/subscribe ch q
+                    (fn [ch {:keys [delivery-tag]} ^bytes payload]
+                      (comment "No op"))
+                    :auto-ack true
+                    :handle-cancel-fn (fn [consumer-tag]
+                                        (println (format "Consumer %s has been cancelled" consumer-tag))))
+```
+
+### Example
+
+``` clojure
+(ns clojurewerkz.langohr.examples.consumer-cancel-notifications
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.queue     :as lq]
+            [langohr.exchange  :as lx]
+            [langohr.basic     :as lb]
+            [langohr.consumers :as lcons])
+  (:import [java.util.concurrent CountDownLatch TimeUnit]))
+
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (lch/open conn)
+        q     (lq/declare-server-named ch)
+        latch (CountDownLatch. 1)]
+    (lcons/subscribe ch q
+                     (fn [ch {:keys [delivery-tag]} ^bytes payload]
+                       (comment "No op"))
+                     :auto-ack true
+                     :handle-cancel-fn (fn [consumer-tag]
+                                         (println (format "Consumer %s has been cancelled" consumer-tag))
+                                         (.countDown latch)))
+    (lq/delete ch q)
+    (.await latch 200 TimeUnit/MILLISECONDS)
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
+```
+
+### Learn More
+
+See also rabbitmq.com section on [Consumer Cancellation Notifications](http://www.rabbitmq.com/consumer-cancel.html)
+
+
+
 
 ## Per-queue Message Time-to-Live
 
