@@ -34,37 +34,77 @@ This guide covers Langohr 1.4.x.
 
 ## Publisher Confirms (Publisher Acknowledgements)
 
-In some situations it is essential that messages are reliably delivered to the RabbitMQ broker and not lost on the way. The only reliable ways of assuring message delivery are by using publisher confirms or [transactions](http://www.rabbitmq.com/semantics.html).
+In some situations it is essential that messages are reliably
+delivered to the RabbitMQ broker and not lost on the way. The only
+reliable ways of assuring message delivery are by using publisher
+confirms or [transactions](http://www.rabbitmq.com/semantics.html).
 
-The [Publisher Confirms AMQP extension](http://www.rabbitmq.com/blog/2011/02/10/introducing-publisher-confirms/) was designed to solve the reliable publishing problem in a more lightweight way compared to transactions.
+The [Publisher Confirms AMQP
+extension](http://www.rabbitmq.com/blog/2011/02/10/introducing-publisher-confirms/)
+was designed to solve the reliable publishing problem in a more
+lightweight way compared to transactions.
 
-Publisher confirms are similar to message acknowledgements (documented in the [Queues and Consumers](/articles/queues/) guide), but involve
-a publisher and a RabbitMQ node instead of a consumer and a RabbitMQ node.
+Publisher confirms are similar to message acknowledgements (documented
+in the [Queues and Consumers](/articles/queues/) guide), but involve a
+publisher and a RabbitMQ node instead of a consumer and a RabbitMQ
+node.
 
 ![RabbitMQ Message Acknowledgements](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/006_amqp_091_message_acknowledgements.png)
 
 ![RabbitMQ Publisher Confirms](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/007_rabbitmq_publisher_confirms.png)
 
-### How To Use It With Bunny 0.9+
+### How To Use It With Langohr
 
-To use publisher confirms, first put the channel into confirmation mode using the `Bunny::Channel#confirm_select` method:
+To use publisher confirms, first put the channel into confirmation
+mode using the `` function:
 
+``` clojure
+(ns langohr.examples
+  (:require [langohr.confirms :as lcf]))
+
+(lcf/select ch)
 ```
-channel.confirm_select
-```
 
-From this moment on, every message published on this channel will cause the channel's _publisher index_ (message counter) to be incremented.
-It is possible to access the index using `Bunny::Channel#next_publish_seq_no` method. To check whether the channel is in confirmation mode,
-use the `Bunny::Channel#using_publisher_confirmations?` method:
+From this moment on, every message published on this channel will be
+given a unique identifier (delivery tag). Unacknowledged delivery tags
+are tracked in a set and removed from the set when a confirmation (or
+negative confirmation) arrives.
 
-``` ruby
+`#waitForConfirms` is a method that can be used to make current thread
+wait until all outstanding confirms arrive. It returns true if all
+confirmations were positive and false otherwise.
 
-```
+Starting with Langohr 1.5, the same can be done with the
+`langohr.confirm/wait-for-confirms` function.
 
 ### Example
 
-``` ruby
+``` clojure
+(ns clojurewerkz.langohr.examples.publisher-confirms
+  (:gen-class)
+  (:require [langohr.core      :as rmq]
+            [langohr.channel   :as lch]
+            [langohr.confirm   :as lcf]
+            [langohr.queue     :as lq]
+            [langohr.exchange  :as lx]
+            [langohr.basic     :as lb]))
 
+(def ^{:const true}
+  default-exchange-name "")
+
+(defn -main
+  [& args]
+  (let [conn  (rmq/connect)
+        ch    (doto (lch/open conn)
+                (lcf/select))
+        q     (lq/declare-server-named ch)]
+    (dotimes [n 1000]
+      (lb/publish ch default-exchange-name q "msg"))
+    (.waitForConfirms ch)
+    (println "All confirms arrived...")
+    (println "[main] Disconnecting...")
+    (rmq/close ch)
+    (rmq/close conn)))
 ```
 
 In the example above, the `Bunny::Channel#wait_for_confirms` method blocks (waits) until all of the published messages are confirmed by the RabbitMQ broker. **Note** that a message may be nacked by the broker if, for some reason, it cannot take responsibility for the message. In that case, the `wait_for_confirms` method will return `false` and there is also a Ruby `Set` of nacked message IDs (`channel.nacked_set`) that can be inspected and dealt with as required.
