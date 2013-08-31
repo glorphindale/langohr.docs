@@ -86,7 +86,7 @@ This guide covers:
  * Other topics related to bindings
 
 
-### [Durability and Related Matters](/articles/durability.html) (TBD)
+### [Durability and Related Matters](/articles/durability.html)
 
 This guide covers:
 
