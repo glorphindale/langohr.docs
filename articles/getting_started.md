@@ -49,7 +49,7 @@ hide the protocol and RabbitMQ capabilities behind layers of DSLs and
 new abstractions.
 
 Langohr may seem like a low level client but in return it is
-predictable, gives you access too all RabbitMQ features and freedom to
+predictable, gives you access to all RabbitMQ features and freedom to
 design message routing scheme and error handling strategy that makes
 sense for you.
 
