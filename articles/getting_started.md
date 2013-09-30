@@ -61,7 +61,7 @@ Here is what Langohr *does not* try to be:
 
  * A replacement for the RabbitMQ Java client
  * Sugar-coated API for task queues that hides all the AMQP machinery from the developer
- * A port of Ruby amqp gem to Clojure
+ * A port of Bunny or amqp gem to Clojure
 
 
 
