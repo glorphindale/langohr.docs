@@ -39,7 +39,7 @@ Langohr works with RabbitMQ versions 2.x and 3.x. Some features may only be avai
 Langohr is a Clojure client for RabbitMQ that embrace [AMQP 0.9.1 Model](http://bitly.com/amqp-model-explained). It reflects
 AMQP 0.9.1 protocol structure in the API and uses established terminology and support all of the [RabbitMQ extensions to AMQP 0.9.1](http://www.rabbitmq.com/extensions.html).
 
-Langohr was designed to combine good parts of several other clients: the official RabbitMQ Java client, [Ruby amqp gem](https://github.com/ruby-amqp/amqp)
+Langohr was designed to combine good parts of several other clients: the official RabbitMQ Java client, [Bunny](http://rubybunny.info)
 and [Hot Bunnies](https://github.com/ruby-amqp/hot_bunnies). It does not, however, try to hide the protocol and RabbitMQ capabilities behind layers
 of DSLs and new abstractions.
 
