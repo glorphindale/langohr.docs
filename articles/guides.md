@@ -128,11 +128,3 @@ This guide covers [RabbitMQ extensions](http://www.rabbitmq.com/extensions.html)
 This guide covers:
 
  * What to check when your apps that use Langohr and RabbitMQ misbehave
-
-
-
-## Tell Us What You Think!
-
-Please take a moment to tell us what you think about this guide on Twitter or the [Langohr mailing list](https://groups.google.com/forum/?fromgroups#!forum/clojure-rabbitmq)
-
-Let us know what was unclear or what has not been covered. Maybe you do not like the guide style or grammar or discover spelling mistakes. Reader feedback is key to making the documentation better.

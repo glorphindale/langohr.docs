@@ -137,13 +137,3 @@ We recommend that you read the following guides first, if possible, in this orde
  * [Exchanges and Publishing](/articles/exchanges.html)
  * [Bindings](/articles/bindings.html)
  * [RabbitMQ Extensions to AMQP 0.9.1](/articles/extensions.html)
-
-## Tell Us What You Think!
-
-Please take a moment to tell us what you think about this guide [on
-Twitter](http://twitter.com/clojurewerkz) or [RabbitMQ mailing
-list](https://lists.rabbitmq.com/cgi-bin/mailman/listinfo/rabbitmq-discuss).
-
-Let us know what was unclear or what has not been covered. Maybe you
-do not like the guide style or grammar or discover spelling
-mistakes. Reader feedback is key to making the documentation better.

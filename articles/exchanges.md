@@ -77,7 +77,9 @@ when a new message is published to that exchange a *copy of the message* is deli
 
 Graphically this can be represented as:
 
-![fanout exchange routing](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/004_fanout_exchange.png)
+<a href="https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/004_fanout_exchange.png">
+  <img src="https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/004_fanout_exchange.png" style="max-width: 100%" alt="fanout exchange routing"/>
+</a>
 
 ### Declaring a fanout exchange
 
@@ -90,13 +92,13 @@ Here are two examples to demonstrate:
 
 ``` clojure
 (require '[langohr.exchange :as le])
- 
+
 (le/declare ch "activity.events" "fanout")
 ```
 
 ``` clojure
 (require '[langohr.exchange :as le])
- 
+
 (le/fanout ch "activity.events")
 ```
 
@@ -114,8 +116,8 @@ publish a message to the exchange:
             [langohr.queue     :as lq]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]))
- 
- 
+
+
 (defn start-consumer
   "Starts a consumer in a separate thread"
   [ch queue-name]
@@ -126,13 +128,13 @@ publish a message to the exchange:
         thread  (Thread. (fn []
                            (lc/subscribe ch queue-name handler :auto-ack true)))]
     (.start thread)))
- 
+
 (defn -main
   [& args]
   (let [conn  (rmq/connect)
         ch    (lch/open conn)
         ename "langohr.examples.fanout"]
-    (le/declare ch ename "fanout")    
+    (le/declare ch ename "fanout")
     (dotimes [i 10]
       (let [q (.getQueue (lq/declare ch "" :exclusive false :auto-delete true))]
         (lq/bind    ch q ename)
@@ -194,8 +196,9 @@ for [multicast routing](http://en.wikipedia.org/wiki/Multicast) as well).
 
 Here is a graphical representation:
 
-![direct exchange routing](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/005_direct_exchange.png)
-
+<a href="https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/005_direct_exchange.png">
+  <img src="https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/005_direct_exchange.png" style="max-width: 100%" alt="direct exchange routing"/>
+</a>
 
 ### Declaring a direct exchange
 
@@ -206,13 +209,13 @@ Here are two examples to demonstrate:
 
 ``` clojure
 (require '[langohr.exchange :as le])
- 
+
 (le/declare ch "imaging" "direct")
 ```
 
 ``` clojure
 (require '[langohr.exchange :as le])
- 
+
 (le/direct ch "imaging")
 ```
 
@@ -229,8 +232,8 @@ Since direct exchanges use the *message routing key* for routing, message produc
             [langohr.queue     :as lq]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]))
- 
- 
+
+
 (defn start-consumer
   "Starts a consumer in a separate thread"
   [ch queue-name]
@@ -241,7 +244,7 @@ Since direct exchanges use the *message routing key* for routing, message produc
         thread  (Thread. (fn []
                            (lc/subscribe ch queue-name handler :auto-ack true)))]
     (.start thread)))
- 
+
 (defn -main
   [& args]
   (let [conn  (rmq/connect)
@@ -299,22 +302,22 @@ The default exchange is used by the "Hello, World" example:
             [langohr.queue     :as lq]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]))
- 
+
 (def ^{:const true}
   default-exchange-name "")
- 
+
 (defn message-handler
   [ch {:keys [content-type delivery-tag type] :as meta} ^bytes payload]
   (println (format "[consumer] Received a message: %s, delivery tag: %d, content type: %s, type: %s"
                    (String. payload "UTF-8") delivery-tag content-type type)))
- 
+
 (defn start-consumer
   "Starts a consumer in a separate thread"
   [conn ch queue-name]
   (let [thread (Thread. (fn []
                           (lc/subscribe ch queue-name message-handler :auto-ack true)))]
     (.start thread)))
- 
+
 (defn -main
   [& args]
   (let [conn  (rmq/connect)
@@ -350,7 +353,9 @@ The topic exchange type is often used to implement various [publish/subscribe pa
 
 Topic exchanges are commonly used for the [multicast routing](http://en.wikipedia.org/wiki/Multicast) of messages.
 
-![](http://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Multicast.svg/500px-Multicast.svg.png)
+<a href="http://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Multicast.svg/500px-Multicast.svg.png">
+  <img src="http://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Multicast.svg/500px-Multicast.svg.png" style="max-width: 100%" alt=""/>
+</a>
 
 Topic exchanges can be used for [broadcast routing](http://en.wikipedia.org/wiki/Broadcasting_%28computing%29), but fanout exchanges are usually
 more efficient for this use case.
@@ -363,7 +368,7 @@ by specifying a *routing pattern* to the `langohr.queue/bind` function, for exam
 
 ``` clojure
 (require '[langohr.exchange :as le])
- 
+
 (lq/bind ch "crawler.d98fd46e880ab4541d9570f671a9272811c5c438" "requests.crawling" :routing-key "#.org")
 ```
 
@@ -411,10 +416,10 @@ Full example:
             [langohr.exchange  :as le]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]))
- 
+
 (def ^{:const true}
   weather-exchange "weathr")
- 
+
 (defn start-consumer
   "Starts a consumer bound to the given topic exchange in a separate thread"
   [ch topic-name queue-name]
@@ -424,12 +429,12 @@ Full example:
     (lq/bind    ch queue-name' weather-exchange :routing-key topic-name)
     (.start (Thread. (fn []
                        (lc/subscribe ch queue-name' handler :auto-ack true))))))
- 
+
 (defn publish-update
   "Publishes a weather update"
   [ch payload routing-key]
   (lb/publish ch weather-exchange routing-key payload :content-type "text/plain" :type "weather.update"))
- 
+
 (defn -main
   [& args]
   (let [conn      (rmq/connect)
@@ -661,10 +666,10 @@ The following code example demonstrates a message that is published as mandatory
             [langohr.queue     :as lq]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]))
- 
+
 (def ^{:const true}
   default-exchange-name "")
- 
+
 (defn -main
   [& args]
   (let [conn  (rmq/connect)
@@ -700,10 +705,10 @@ returned message callbacks with consumers. To handle returned messages, use `lan
             [langohr.queue     :as lq]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]))
- 
+
 (def ^{:const true}
   default-exchange-name "")
- 
+
 (defn -main
   [& args]
   (let [conn  (rmq/connect)
@@ -733,7 +738,7 @@ To publish a persistent message, use the `:persistent` option that `langohr.basi
 
 ``` clojure
 (require '[langohr.basic :as lb])
- 
+
 (lb/publish ch "requests.crawling" "datsite.net" payload :content-type "application/json" :type "commands.sitemap.refresh" :persistent true)
 ```
 
@@ -778,7 +783,7 @@ routing are taken from the "headers" attribute. When a queue is bound to a heade
 
 ``` clojure
 (require '[langohr.queue :as lq])
- 
+
 (lq/bind ch "hosts.ip-172-37-11-56" "requests" :arguments {"os" "Linux"})
 ```
 
@@ -794,8 +799,8 @@ that demonstrates headers routing:
             [langohr.queue     :as lq]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]))
- 
- 
+
+
 (defn start-consumer
   "Starts a consumer in a separate thread"
   [ch queue-name]
@@ -806,7 +811,7 @@ that demonstrates headers routing:
         thread  (Thread. (fn []
                            (lc/subscribe ch queue-name handler :auto-ack true)))]
     (.start thread)))
- 
+
 (defn -main
   [& args]
   (let [conn  (rmq/connect)
@@ -818,7 +823,7 @@ that demonstrates headers routing:
       (start-consumer ch qname))
     (let [qname (.getQueue (lq/declare ch "" :auto-delete true :exclusive false))]
       (lq/bind ch qname ename :arguments {"os" "osx" "cores" 4 "x-match" "any"})
-      (start-consumer ch qname))    
+      (start-consumer ch qname))
     (lb/publish ch ename "" "8 cores/Linux" :content-type "text/plain" :headers {"os" "linux" "cores" 8})
     (lb/publish ch ename "" "8 cores/OS X"  :content-type "text/plain" :headers {"os" "osx"   "cores" 8})
     (lb/publish ch ename "" "4 cores/Linux" :content-type "text/plain" :headers {"os" "linux" "cores" 4})
@@ -858,7 +863,7 @@ To declare a headers exchange, use `langohr.exchange/declare` and specify the ex
 
 ``` clojure
 (require '[langohr.exchange :as le])
- 
+
 (le/declare ch "langohr.examples.headers" "headers")
 ```
 
@@ -943,7 +948,7 @@ Exchanges are deleted using the `langohr.exchange/delete`:
 
 ``` clojure
 (require '[langohr.exchange :as le])
- 
+
 (le/delete ch "requests.crawling")
 ```
 
@@ -953,7 +958,7 @@ Exchanges can be *auto-deleted*. To declare an exchange as auto-deleted, use the
 
 ``` clojure
 (require '[langohr.exchange :as le])
- 
+
 (le/declare ch "requests.crawling" "topic" :auto-delete true)
 ```
 
@@ -995,11 +1000,3 @@ We recommend that you read the following guides first, if possible, in this orde
  * [Error Handling and Recovery](/articles/error_handling.html)
  * [Troubleshooting](/articles/troubleshooting.html)
  * [Using TLS (SSL) Connections](/articles/tls.html)
-
-
-
-## Tell Us What You Think!
-
-Please take a moment to tell us what you think about this guide [on Twitter](http://twitter.com/clojurewerkz) or the [Clojure RabbitMQ mailing list](https://groups.google.com/forum/#!forum/clojure-rabbitmq)
-
-Let us know what was unclear or what has not been covered. Maybe you do not like the guide style or grammar or discover spelling mistakes. Reader feedback is key to making the documentation better.

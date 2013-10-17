@@ -41,10 +41,10 @@ To connect to RabbitMQ with a map of parameters, use the `langohr.core/connect` 
 
 ``` clojure
 (require '[langohr.core :as rmq])
- 
+
 ;; connect with all defaults
 (rmq/connect)
- 
+
 ;; connect with the given settings
 (rmq/connect {:host "messaging.dev.megacorp.internal" :username "joe" :password "t0ps3krEt"})
 ```
@@ -67,7 +67,7 @@ It is also possible to specify connection parameters as a URI string using the `
 
 ``` clojure
 (require '[langohr.core :as rmq])
- 
+
 (rmq/connect {:uri "amqp://username:password@broker.megacorp.internal:5672/development"})
 ```
 
@@ -128,8 +128,8 @@ To open a channel, use the `langohr.channel/open` function that takes a connecti
 ``` clojure
 (require '[langohr.core    :as rmq])
 (require '[langohr.channel :as lch])
- 
- 
+
+
 (let [conn (rmq/connect)
       ch   (lch/open conn)]
   ch)
@@ -176,11 +176,3 @@ We recommend that you read the following guides first, if possible, in this orde
  * [Error Handling and Recovery](/articles/error_handling.html)
  * [Troubleshooting](/articles/troubleshooting.html)
  * [Using TLS (SSL) Connections](/articles/tls.html)
-
-
-
-## Tell Us What You Think!
-
-Please take a moment to tell us what you think about this guide [on Twitter](http://twitter.com/clojurewerkz) or the [Clojure RabbitMQ mailing list](https://groups.google.com/forum/#!forum/clojure-rabbitmq)
-
-Let us know what was unclear or what has not been covered. Maybe you do not like the guide style or grammar or discover spelling mistakes. Reader feedback is key to making the documentation better.

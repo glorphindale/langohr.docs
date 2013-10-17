@@ -49,9 +49,13 @@ in the [Queues and Consumers](/articles/queues/) guide), but involve a
 publisher and a RabbitMQ node instead of a consumer and a RabbitMQ
 node.
 
-![RabbitMQ Message Acknowledgements](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/006_amqp_091_message_acknowledgements.png)
+<a href="https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/006_amqp_091_message_acknowledgements.png">
+  <img src="https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/006_amqp_091_message_acknowledgements.png" style="max-width: 100%" alt="RabbitMQ Message Acknowledgements"/>
+</a>
 
-![RabbitMQ Publisher Confirms](https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/007_rabbitmq_publisher_confirms.png)
+<a href="https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/007_rabbitmq_publisher_confirms.png">
+  <img src="https://github.com/ruby-amqp/amqp/raw/master/docs/diagrams/007_rabbitmq_publisher_confirms.png" style="max-width: 100%" alt="RabbitMQ Publisher Confirms"/>
+</a>
 
 ### How To Use It With Langohr
 
@@ -627,11 +631,3 @@ We recommend that you read the following guides first, if possible, in this orde
  * [Error Handling and Recovery](/articles/error_handling.html)
  * [Troubleshooting](/articles/troubleshooting.html)
  * [Using TLS (SSL) Connections](/articles/tls.html)
-
-
-
-## Tell Us What You Think!
-
-Please take a moment to tell us what you think about this guide [on Twitter](http://twitter.com/clojurewerkz) or the [Clojure RabbitMQ mailing list](https://groups.google.com/forum/#!forum/clojure-rabbitmq)
-
-Let us know what was unclear or what has not been covered. Maybe you do not like the guide style or grammar or discover spelling mistakes. Reader feedback is key to making the documentation better.

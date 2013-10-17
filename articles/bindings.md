@@ -47,7 +47,7 @@ use the `langohr.queue/bind` function:
 
 ``` clojure
 (require '[langohr.queue :as lq])
- 
+
 (lq/bind ch "images.resize" "amq.topic")
 ```
 
@@ -57,8 +57,8 @@ The same example in context:
 (require '[langohr.core    :as rmq])
 (require '[langohr.channel :as lch])
 (require '[langohr.queue   :as lq])
- 
- 
+
+
 (let [conn (rmq/connect)
       ch   (lch/open conn)]
   (lq/bind ch "images.resize" "amq.topic"))
@@ -120,10 +120,10 @@ returned message callbacks with consumers. To handle returned messages, use `lan
             [langohr.queue     :as lq]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]))
- 
+
 (def ^{:const true}
   default-exchange-name "")
- 
+
 (defn -main
   [& args]
   (let [conn  (rmq/connect)
@@ -166,11 +166,3 @@ We recommend that you read the following guides first, if possible, in this orde
  * [Error Handling and Recovery](/articles/error_handling.html)
  * [Troubleshooting](/articles/troubleshooting.html)
  * [Using TLS (SSL) Connections](/articles/tls.html)
-
-
-
-## Tell Us What You Think!
-
-Please take a moment to tell us what you think about this guide [on Twitter](http://twitter.com/clojurewerkz) or the [Clojure RabbitMQ mailing list](https://groups.google.com/forum/#!forum/clojure-rabbitmq)
-
-Let us know what was unclear or what has not been covered. Maybe you do not like the guide style or grammar or discover spelling mistakes. Reader feedback is key to making the documentation better.
