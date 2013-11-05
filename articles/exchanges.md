@@ -14,7 +14,7 @@ This work is licensed under a <a rel="license" href="http://creativecommons.org/
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.5.x.
+This guide covers Langohr 1.6.x.
 
 
 ## Exchanges in AMQP 0.9.1 — Overview
