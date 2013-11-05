@@ -19,7 +19,7 @@ This guide covers Langohr 1.6.x.
 ## TLS Support in RabbitMQ
 
 RabbitMQ version 2.x and 3.x support TLS/SSL on Erlang R13B or later. Using the most
-recent version (e.g. R16B) is recommended.
+recent version (e.g. R16B02) is recommended.
 
 To use TLS with RabbitMQ, you need a few things:
 
