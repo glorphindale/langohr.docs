@@ -20,7 +20,7 @@ This work is licensed under a <a rel="license" href="http://creativecommons.org/
 
 ## What version of Langohr does this guide cover?
 
-This guide covers Langohr 1.6.x.
+This guide covers Langohr 1.7.x.
 
 
 ## Supported Clojure Versions
@@ -95,7 +95,7 @@ Langohr artifacts are [released to Clojars](https://clojars.org/com.novemberain/
 ### With Leiningen
 
 ``` clojure
-[com.novemberain/langohr "1.4.1"]
+[com.novemberain/langohr "1.7.0"]
 ```
 
 ### With Maven
@@ -115,7 +115,7 @@ And then the dependency:
 <dependency>
   <groupId>com.novemberain</groupId>
   <artifactId>langohr</artifactId>
-  <version>1.4.1</version>
+  <version>1.7.0</version>
 </dependency>
 ```
 
