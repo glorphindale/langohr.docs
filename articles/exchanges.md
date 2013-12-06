@@ -534,7 +534,7 @@ others are specific to a particular application. Well-known attributes are liste
  * `:timestamp`
  * `:expiration`
 
-All other attributes can be added to a *headers table* (in Clojure, a map) that `langohr.basic/publish` accepts as the `:arguments` option.
+All other attributes can be added to a *headers table* (in Clojure, a map) that `langohr.basic/publish` accepts as the `:headers` option.
 
 An example:
 
@@ -544,8 +544,8 @@ An example:
             :type "greetings.reply"
             :mandatory true
             :reply-to "greetings.hi"
-            :arguments {"server" "app5.myapp.megacorp.com"
-                        "cached" false})
+            :headers {"server" "app5.myapp.megacorp.com"
+                      "cached" false})
 ```
 
 <dl>
