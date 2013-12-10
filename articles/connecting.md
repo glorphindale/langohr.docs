@@ -35,7 +35,10 @@ Map options that Langohr will recognize are
  * `:password`
  * `:vhost`
  * `:requested-heartbeat`
+ * `:requested-channel-max
  * `:connection-timeout`
+ * `:ssl
+ * `:ssl-context
 
 To connect to RabbitMQ with a map of parameters, use the `langohr.core/connect` function:
 
